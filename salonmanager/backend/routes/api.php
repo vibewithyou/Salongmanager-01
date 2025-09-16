@@ -23,6 +23,7 @@ use App\Http\Controllers\Inventory\StockController;
 use App\Http\Controllers\Inventory\SupplierController;
 use App\Http\Controllers\Inventory\StockLocationController;
 use App\Http\Controllers\Inventory\PurchaseOrderController;
+use App\Http\Controllers\Reports\ReportController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -181,6 +182,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/po', [PurchaseOrderController::class, 'index']);
         Route::post('/po', [PurchaseOrderController::class, 'store']);
         Route::post('/po/{purchase_order}/receive', [PurchaseOrderController::class, 'receive']);
+    });
+
+    // Reports & Analytics routes
+    Route::middleware(['auth:sanctum', 'tenant.required'])->prefix('reports')->group(function () {
+        Route::get('/revenue', [ReportController::class, 'revenue'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/top-services', [ReportController::class, 'topServices'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/top-stylists', [ReportController::class, 'topStylists'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/occupancy', [ReportController::class, 'occupancy'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/export', [ReportController::class, 'exportCsv'])
+            ->middleware('role:salon_owner,salon_manager');
     });
 
     // Public search routes (no auth, no tenant binding)

@@ -18,6 +18,11 @@ class SalonPage extends ConsumerWidget {
         title: Text(state.profile?.name ?? 'Salon'),
         actions: [
           IconButton(
+            onPressed: () => context.go('/reports'),
+            icon: const Icon(Icons.analytics),
+            tooltip: 'Reports & Analytics',
+          ),
+          IconButton(
             onPressed: () => context.go('/bookings'),
             icon: const Icon(Icons.calendar_today),
             tooltip: 'My Bookings',
