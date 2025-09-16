@@ -1,33 +1,33 @@
-// go_router configuration with three routes: /, /login, /salon/:id
-// Screens are placeholders for now
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/state/auth_controller.dart';
+import '../../features/auth/ui/login_screen.dart';
+import '../../features/salon_profile/ui/home_screen.dart';
+import 'go_router_refresh_stream.dart';
 
-Widget _placeholderScreen(String title) => Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(child: Text(title)),
+class AppRouter {
+  static GoRouter build(WidgetRef ref) {
+    // Create a stream that emits when auth state changes
+    final authNotifier = ref.watch(authControllerProvider.notifier);
+    final refreshStream = authNotifier.stream;
+    
+    return GoRouter(
+      initialLocation: '/',
+      refreshListenable: GoRouterRefreshStream(refreshStream),
+      redirect: (context, state) {
+        final auth = ref.read(authControllerProvider);
+        final loggingIn = state.matchedLocation == '/login';
+        final loggedIn = auth.user != null;
+
+        if (!loggedIn && !loggingIn) return '/login';
+        if (loggedIn && loggingIn) return '/';
+        return null;
+      },
+      routes: [
+        GoRoute(path: '/login', builder: (ctx, st) => const LoginScreen()),
+        GoRoute(path: '/', builder: (ctx, st) => const HomeScreen()),
+      ],
     );
-
-GoRouter buildRouter() {
-  return GoRouter(
-    routes: <RouteBase>[
-      GoRoute(
-        path: '/',
-        name: 'home',
-        builder: (context, state) => _placeholderScreen('Home'),
-      ),
-      GoRoute(
-        path: '/login',
-        name: 'login',
-        builder: (context, state) => _placeholderScreen('Login'),
-      ),
-      GoRoute(
-        path: '/salon/:id',
-        name: 'salon',
-        builder: (context, state) => _placeholderScreen('Salon \\${state.pathParameters['id']}'),
-      ),
-    ],
-  );
+  }
 }
-

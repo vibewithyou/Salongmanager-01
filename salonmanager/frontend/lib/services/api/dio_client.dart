@@ -1,39 +1,31 @@
-// Dio client setup with placeholder interceptor for auth token
-// Base URL is provided via --dart-define=API_BASE_URL
-
 import 'package:dio/dio.dart';
+import '../../core/env/env.dart';
 
-class DioClient {
-  DioClient._internal();
-  static final DioClient instance = DioClient._internal();
-
-  late final Dio dio = _createDio();
-
-  Dio _createDio() {
-    final baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000/api/v1');
-    final options = BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
+class ApiClient {
+  static Dio build() {
+    final dio = Dio(BaseOptions(
+      baseUrl: '${Env.baseUrl}/api/v1',
+      connectTimeout: const Duration(seconds: 20),
       receiveTimeout: const Duration(seconds: 20),
       headers: {
         'Accept': 'application/json',
+        'X-Salon-Slug': Env.tenantSlug, // tenant binding
       },
-    );
-    final dio = Dio(options);
+      // For SPA cookie flow, ensure with browser that credentials are allowed (handled by browser).
+    ));
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // TODO: inject auth token from secure storage when available
-        // options.headers['Authorization'] = 'Bearer <token>';
-        return handler.next(options);
+        // CSRF: for SPA cookie flow, backend expects X-XSRF-TOKEN header. In browser, Dio can't read httpOnly cookies.
+        // Strategy: call /sanctum/csrf-cookie once on app start via fetch (JS) or provide an endpoint /v1/auth/csrf.
+        // Here we assume frontend first calls AuthRepository.ensureCsrf() before login.
+        handler.next(options);
       },
       onError: (e, handler) {
-        // Basic logging/error mapping placeholder
-        return handler.next(e);
+        // TODO: add 401 handling (token refresh / redirect login)
+        handler.next(e);
       },
     ));
-
     return dio;
   }
 }
-
