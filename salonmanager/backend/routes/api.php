@@ -17,6 +17,7 @@ use App\Http\Controllers\Pos\InvoiceController;
 use App\Http\Controllers\Pos\PaymentController;
 use App\Http\Controllers\Pos\RefundController;
 use App\Http\Controllers\Pos\ReportController;
+use App\Http\Controllers\Search\SearchController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -144,5 +145,11 @@ Route::prefix('v1')->group(function () {
             ->middleware('role:salon_owner,salon_manager');
         Route::get('/exports/datev.csv', [ReportController::class, 'datevCsv'])
             ->middleware('role:salon_owner,salon_manager');
+    });
+
+    // Public search routes (no auth, no tenant binding)
+    Route::prefix('search')->group(function () {
+        Route::get('/salons', [SearchController::class, 'salons']);
+        Route::get('/availability', [SearchController::class, 'availability']);
     });
 });

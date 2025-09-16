@@ -11,6 +11,7 @@ import '../../features/customer_profile/ui/customer_list_page.dart';
 import '../../features/customer_profile/ui/customer_detail_page.dart';
 import '../../features/billing_pos/ui/pos_page.dart';
 import '../../features/billing_pos/ui/z_report_page.dart';
+import '../../features/search_map/ui/search_map_page.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
@@ -47,6 +48,7 @@ class AppRouter {
         ),
         GoRoute(path: '/pos', builder: (ctx, st) => const PosPage()),
         GoRoute(path: '/pos/z-report', builder: (ctx, st) => const ZReportPage()),
+        GoRoute(path: '/search', builder: (ctx, st) => const SearchMapPage()),
       ],
     );
   }
