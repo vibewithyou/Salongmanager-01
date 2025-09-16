@@ -27,6 +27,7 @@ use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Media\UploadController;
 use App\Http\Controllers\Notify\{PreferencesController, WebhooksController};
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\GdprController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -248,5 +249,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('/{review}/toggle-approval', [ReviewController::class, 'toggleApproval']);
             });
         });
+    });
+
+    // GDPR routes
+    Route::prefix('gdpr')->middleware(['auth:sanctum','tenant.required'])->group(function () {
+        Route::post('/export', [GdprController::class,'requestExport']);
+        Route::post('/delete', [GdprController::class,'requestDelete']);
+        Route::middleware('role:salon_owner,platform_admin')->post('/delete/{gdpr}/confirm', [GdprController::class,'confirmDelete']);
     });
 });
