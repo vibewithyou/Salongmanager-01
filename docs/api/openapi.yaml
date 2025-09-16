@@ -242,6 +242,241 @@ paths:
         "422":
           description: Validation error
 
+  /gallery/photos:
+    get:
+      summary: List gallery photos
+      description: Get a paginated list of gallery photos
+      parameters:
+        - name: album_id
+          in: query
+          schema:
+            type: integer
+        - name: approved
+          in: query
+          schema:
+            type: boolean
+        - name: before_after_group
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of gallery photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GalleryPhoto'
+
+  /gallery/photos/{photo}/like:
+    post:
+      summary: Like/unlike a photo
+      description: Toggle like status for a gallery photo
+      security:
+        - sanctum: []
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Like status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  liked:
+                    type: boolean
+                  likes_count:
+                    type: integer
+
+  /gallery/photos/{photo}/favorite:
+    post:
+      summary: Favorite/unfavorite a photo
+      description: Toggle favorite status for a gallery photo
+      security:
+        - sanctum: []
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Favorite status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  favorited:
+                    type: boolean
+                  favorites_count:
+                    type: integer
+
+  /gallery/photos/{photo}/stats:
+    get:
+      summary: Get photo statistics
+      description: Get like and favorite statistics for a photo
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Photo statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoStats'
+
+  /gallery/photos/{photo}/suggested-services:
+    get:
+      summary: Get AI suggested services
+      description: Get AI-suggested services for a photo
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suggested services
+          headers:
+            X-AI:
+              description: AI status (enabled/disabled)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggested_services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SuggestedService'
+
+  /customers/{customer}/gallery:
+    get:
+      summary: Get customer gallery
+      description: Get photos for a specific customer
+      security:
+        - sanctum: []
+      parameters:
+        - name: customer
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: approved
+          in: query
+          schema:
+            type: boolean
+        - name: before_after_group
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer gallery photos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GalleryPhoto'
+
+  /bookings/from-photo/{photo}/suggested-services:
+    get:
+      summary: Get suggested services for booking
+      description: Get AI-suggested services for creating a booking from a photo
+      security:
+        - sanctum: []
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Suggested services for booking
+          headers:
+            X-AI:
+              description: AI status (enabled/disabled)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggested_services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SuggestedService'
+
+  /bookings/from-photo/{photo}:
+    post:
+      summary: Create booking from photo
+      description: Create a draft booking inspired by a gallery photo
+      security:
+        - sanctum: []
+      parameters:
+        - name: photo
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+              properties:
+                service_id:
+                  type: integer
+                stylist_id:
+                  type: integer
+                start_at:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking:
+                    $ref: '#/components/schemas/Booking'
+                  next_steps:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      actions:
+                        type: object
+
 components:
   securitySchemes:
     sanctum:
@@ -333,6 +568,100 @@ components:
         created_at:
           type: string
           format: date-time
+
+    GalleryPhoto:
+      type: object
+      properties:
+        id:
+          type: integer
+        salon_id:
+          type: integer
+        album_id:
+          type: integer
+          nullable: true
+        customer_id:
+          type: integer
+          nullable: true
+        path:
+          type: string
+        variants:
+          type: object
+          nullable: true
+        before_after_group:
+          type: string
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejected_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        album:
+          $ref: '#/components/schemas/GalleryAlbum'
+        customer:
+          $ref: '#/components/schemas/CustomerProfile'
+        creator:
+          $ref: '#/components/schemas/User'
+
+    GalleryAlbum:
+      type: object
+      properties:
+        id:
+          type: integer
+        salon_id:
+          type: integer
+        title:
+          type: string
+        visibility:
+          type: string
+          enum: [public, private, unlisted, private_customer]
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PhotoStats:
+      type: object
+      properties:
+        likes:
+          type: integer
+        is_liked:
+          type: boolean
+        is_favorited:
+          type: boolean
+
+    SuggestedService:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        duration:
+          type: integer
+        category:
+          type: string
+          nullable: true
+        confidence:
+          type: number
 
 security:
   - sanctum: []

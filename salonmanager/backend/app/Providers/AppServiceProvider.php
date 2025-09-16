@@ -12,6 +12,18 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('audit', fn() => new \App\Support\Audit\Audit());
+        
+        // AI Recommender binding based on environment configuration
+        $recommenderType = config('app.ai_recommender', 'null');
+        $this->app->bind(\App\Domain\Gallery\AI\Recommendations::class, function () use ($recommenderType) {
+            return match ($recommenderType) {
+                'null' => new \App\Services\Gallery\AI\NullRecommender(),
+                'vertex' => new \App\Services\Gallery\AI\VertexRecommender(), // Future implementation
+                'openai' => new \App\Services\Gallery\AI\OpenAIRecommender(), // Future implementation
+                'custom' => new \App\Services\Gallery\AI\CustomRecommender(), // Future implementation
+                default => new \App\Services\Gallery\AI\NullRecommender(),
+            };
+        });
     }
 
     /**

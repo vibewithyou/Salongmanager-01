@@ -34,7 +34,8 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\GdprController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\Rbac\RoleController;
-use App\Http\Controllers\Gallery\{GalleryAlbumController, GalleryPhotoController, GalleryConsentController};
+use App\Http\Controllers\Gallery\{GalleryAlbumController, GalleryPhotoController, GalleryConsentController, CustomerGalleryController};
+use App\Http\Controllers\BookingFromPhotoController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -361,6 +362,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/photos/{photo}', [GalleryPhotoController::class, 'destroy'])
             ->middleware(['auth:sanctum']);
 
+        // Photo interactions (likes, favorites, stats)
+        Route::post('/photos/{photo}/like', [GalleryPhotoController::class, 'like'])
+            ->middleware(['auth:sanctum', 'throttle.scope:60,1']);
+        Route::post('/photos/{photo}/favorite', [GalleryPhotoController::class, 'favorite'])
+            ->middleware(['auth:sanctum', 'throttle.scope:60,1']);
+        Route::get('/photos/{photo}/stats', [GalleryPhotoController::class, 'stats']);
+        Route::get('/photos/{photo}/suggested-services', [GalleryPhotoController::class, 'suggestedServices']);
+
         // Consents
         Route::post('/consents', [GalleryConsentController::class, 'store'])
             ->middleware(['auth:sanctum']);
@@ -368,5 +377,18 @@ Route::prefix('v1')->group(function () {
             ->middleware(['auth:sanctum']);
         Route::delete('/consents/{consent}', [GalleryConsentController::class, 'destroy'])
             ->middleware(['auth:sanctum']);
+    });
+
+    // Customer gallery routes
+    Route::prefix('customers')->middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+        Route::get('/{customer}/gallery', [CustomerGalleryController::class, 'index'])
+            ->middleware('role:salon_owner,salon_manager,stylist,customer');
+    });
+
+    // Booking from photo routes
+    Route::prefix('bookings')->middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:45,1'])->group(function () {
+        Route::get('/from-photo/{photo}/suggested-services', [BookingFromPhotoController::class, 'suggestedServices']);
+        Route::post('/from-photo/{photo}', [BookingFromPhotoController::class, 'createBooking'])
+            ->middleware('role:customer');
     });
 });

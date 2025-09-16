@@ -1,37 +1,24 @@
-# TODO: Commands to Run for v1.0.0 Release
+# TODO: Run Commands for Feature Completion Pack
 
-## Backend Setup Commands
+## Backend Setup
 
 ```bash
 # Navigate to backend directory
 cd salonmanager/backend
 
-# Install dependencies
-composer install --no-interaction
-
-# Generate application key
-php artisan key:generate
-
 # Run migrations
 php artisan migrate
 
-# Publish Fortify configuration
-php artisan vendor:publish --provider="Laravel\Fortify\FortifyServiceProvider"
+# Run new feature tests
+php artisan test --testsuite=Feature --group=gallery
+php artisan test --testsuite=Feature --group=booking_from_photo
+php artisan test --testsuite=Feature --group=ai
 
-# Clear caches
-php artisan config:clear
-php artisan cache:clear
-php artisan route:clear
-
-# Run tests
-php artisan test --testsuite=Feature
-php artisan test --group=e2e
-
-# Test backup system
-php artisan backup:run
+# Run all tests to ensure nothing is broken
+php artisan test
 ```
 
-## Frontend Setup Commands
+## Frontend Setup
 
 ```bash
 # Navigate to frontend directory
@@ -46,155 +33,74 @@ flutter analyze
 # Run tests
 flutter test
 
-# Build for web
-flutter build web --release
+# Run specific gallery tests
+flutter test test/features/gallery_ai/
 ```
 
 ## Environment Configuration
 
-### Required Environment Variables
-
-Add to `.env` file:
-
-```bash
-# 2FA Configuration
-TWO_FA_REQUIRED_ROLES=owner,platform_admin,salon_owner
-
-# Sentry (Optional - leave empty to disable)
-SENTRY_LARAVEL_DSN=
-SENTRY_DSN=
-
-# Backup Configuration
-BACKUP_DISK=local
-BACKUP_NOTIFICATION_MAIL=admin@salonmanager.app
+Add to `.env`:
+```env
+# AI Recommender Configuration
+AI_RECOMMENDER=null
 ```
 
-## Release Tagging
-
-### Windows (PowerShell)
-```powershell
-# Make script executable and run
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\ops\release\tag.ps1 --version v1.0.0
-```
-
-### Unix/Linux (Bash)
-```bash
-# Make script executable and run
-chmod +x ops/release/tag.sh
-./ops/release/tag.sh --version v1.0.0
-```
-
-## Health Checks
+## Verification Commands
 
 ```bash
-# Test health endpoint
-curl -sSf http://localhost:8000/api/v1/health
+# Check if all new routes are registered
+cd salonmanager/backend
+php artisan route:list --path=gallery
+php artisan route:list --path=customers
+php artisan route:list --path=bookings
 
-# Test backup system
-php artisan backup:list
+# Verify migrations
+php artisan migrate:status
 
-# Test 2FA endpoints (requires authentication)
-curl -X POST http://localhost:8000/api/v1/auth/2fa/enable \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json"
-```
+# Check for any linting errors
+cd salonmanager/backend
+./vendor/bin/pint --test
 
-## Security Verification
-
-```bash
-# Check security headers
-curl -I http://localhost:8000/api/v1/health
-
-# Verify CORS headers
-curl -H "Origin: https://salongmanager.app" \
-  -H "Access-Control-Request-Method: POST" \
-  -H "Access-Control-Request-Headers: X-Requested-With" \
-  -X OPTIONS http://localhost:8000/api/v1/auth/login
+cd salonmanager/frontend
+flutter analyze
 ```
 
 ## Database Verification
 
 ```sql
--- Check 2FA fields exist
-DESCRIBE users;
-
--- Check gallery tables exist
+-- Check if new tables exist
 SHOW TABLES LIKE 'gallery_%';
 
--- Verify indexes
-SHOW INDEX FROM gallery_photos;
-SHOW INDEX FROM gallery_albums;
-SHOW INDEX FROM gallery_consents;
+-- Check if customer_id column exists in gallery_photos
+DESCRIBE gallery_photos;
+
+-- Check if visibility enum was updated
+SHOW COLUMNS FROM gallery_albums LIKE 'visibility';
 ```
 
-## Deployment Commands
+## API Testing
 
 ```bash
-# Docker deployment
-docker-compose -f docker-compose.prod.yml up -d
+# Test gallery endpoints (requires running server)
+curl -X GET "http://localhost:8000/api/v1/gallery/photos" \
+  -H "Accept: application/json"
 
-# Or systemd deployment
-sudo systemctl start salonmanager-backend
-sudo systemctl start salonmanager-frontend
+# Test photo stats (public endpoint)
+curl -X GET "http://localhost:8000/api/v1/gallery/photos/1/stats" \
+  -H "Accept: application/json"
 
-# Verify services
-sudo systemctl status salonmanager-backend
-sudo systemctl status salonmanager-frontend
+# Test AI suggestions (public endpoint)
+curl -X GET "http://localhost:8000/api/v1/gallery/photos/1/suggested-services" \
+  -H "Accept: application/json"
 ```
 
-## Post-Deployment Verification
+## Feature Verification Checklist
 
-```bash
-# Check application logs
-docker-compose -f docker-compose.prod.yml logs -f
-
-# Or systemd logs
-sudo journalctl -u salonmanager-backend -f
-sudo journalctl -u salonmanager-frontend -f
-
-# Test all endpoints
-curl http://localhost:8000/api/v1/health
-curl http://localhost:8000/api/v1/search/salons
-curl http://localhost:8000/api/v1/gallery/albums
-```
-
-## Monitoring Setup
-
-```bash
-# Check Sentry integration (if configured)
-# Look for events in Sentry dashboard
-
-# Check backup monitoring
-php artisan backup:monitor
-
-# Check queue workers
-php artisan queue:work --once
-```
-
-## Rollback Commands (if needed)
-
-```bash
-# Activate maintenance mode
-php artisan down --message="Emergency maintenance in progress"
-
-# Restore from backup
-php artisan backup:restore --disk=local --backup=latest
-
-# Revert to previous tag
-git checkout v0.9.0
-git push origin v0.9.0
-
-# Restart services
-docker-compose -f docker-compose.prod.yml restart
-# or
-sudo systemctl restart salonmanager-backend
-sudo systemctl restart salonmanager-frontend
-
-# Disable maintenance mode
-php artisan up
-```
-
----
-
-**Note:** All commands should be run in the appropriate environment (development, staging, production) with proper permissions and configuration.
+- [ ] Gallery likes and favorites work
+- [ ] Customer galleries are accessible with proper RBAC
+- [ ] Booking from photo creates draft bookings
+- [ ] AI stubs return empty arrays with disabled header
+- [ ] All tests pass
+- [ ] No linting errors
+- [ ] OpenAPI documentation is updated
+- [ ] Migrations are reversible

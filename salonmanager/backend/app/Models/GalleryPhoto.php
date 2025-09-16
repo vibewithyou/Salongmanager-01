@@ -58,6 +58,16 @@ class GalleryPhoto extends Model
         return $this->hasMany(GalleryConsent::class, 'photo_id');
     }
 
+    public function likes(): HasMany
+    {
+        return $this->hasMany(GalleryLike::class, 'photo_id');
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(GalleryFavorite::class, 'photo_id');
+    }
+
     public function beforeAfterPhotos(): HasMany
     {
         return $this->hasMany(GalleryPhoto::class, 'before_after_group', 'before_after_group')

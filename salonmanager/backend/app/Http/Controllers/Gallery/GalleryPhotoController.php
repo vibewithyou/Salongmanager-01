@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Gallery;
 use App\Http\Controllers\Controller;
 use App\Models\GalleryPhoto;
 use App\Models\GalleryAlbum;
+use App\Models\GalleryLike;
+use App\Models\GalleryFavorite;
+use App\Domain\Gallery\AI\Recommendations;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
@@ -143,5 +146,97 @@ class GalleryPhotoController extends Controller
         $photo->delete();
 
         return response()->json(['message' => 'Photo deleted successfully']);
+    }
+
+    public function like(GalleryPhoto $photo): JsonResponse
+    {
+        $this->authorize('view', $photo);
+
+        $userId = auth()->id();
+        $existingLike = GalleryLike::where('photo_id', $photo->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existingLike) {
+            $existingLike->delete();
+            $liked = false;
+        } else {
+            GalleryLike::create([
+                'salon_id' => app('tenant')->id,
+                'photo_id' => $photo->id,
+                'user_id' => $userId,
+            ]);
+            $liked = true;
+        }
+
+        return response()->json([
+            'liked' => $liked,
+            'likes_count' => $photo->likes()->count(),
+        ]);
+    }
+
+    public function favorite(GalleryPhoto $photo): JsonResponse
+    {
+        $this->authorize('view', $photo);
+
+        $userId = auth()->id();
+        $existingFavorite = GalleryFavorite::where('photo_id', $photo->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existingFavorite) {
+            $existingFavorite->delete();
+            $favorited = false;
+        } else {
+            GalleryFavorite::create([
+                'salon_id' => app('tenant')->id,
+                'photo_id' => $photo->id,
+                'user_id' => $userId,
+            ]);
+            $favorited = true;
+        }
+
+        return response()->json([
+            'favorited' => $favorited,
+            'favorites_count' => $photo->favorites()->count(),
+        ]);
+    }
+
+    public function stats(GalleryPhoto $photo): JsonResponse
+    {
+        $this->authorize('view', $photo);
+
+        $userId = auth()->id();
+        $isLiked = $userId ? GalleryLike::where('photo_id', $photo->id)
+            ->where('user_id', $userId)
+            ->exists() : false;
+
+        $isFavorited = $userId ? GalleryFavorite::where('photo_id', $photo->id)
+            ->where('user_id', $userId)
+            ->exists() : false;
+
+        return response()->json([
+            'likes' => $photo->likes()->count(),
+            'is_liked' => $isLiked,
+            'is_favorited' => $isFavorited,
+        ]);
+    }
+
+    public function suggestedServices(GalleryPhoto $photo): JsonResponse
+    {
+        $this->authorize('view', $photo);
+
+        try {
+            $recommender = app(Recommendations::class);
+            $suggestions = $recommender->suggestServicesForPhoto($photo->id);
+            
+            return response()->json([
+                'suggested_services' => $suggestions,
+            ])->header('X-AI', 'enabled');
+        } catch (\Exception $e) {
+            return response()->json([
+                'suggested_services' => [],
+            ])->header('X-AI', 'disabled');
+        }
     }
 }
