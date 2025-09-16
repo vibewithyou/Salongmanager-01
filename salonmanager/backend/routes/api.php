@@ -8,6 +8,8 @@ use App\Http\Controllers\Salon\BlockController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Staff\ShiftController;
 use App\Http\Controllers\Staff\AbsenceController;
+use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\CalendarExportController;
 use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\Customer\NoteController;
 use App\Http\Controllers\Customer\LoyaltyController;
@@ -100,6 +102,27 @@ Route::prefix('v1')->group(function () {
         Route::put('/absences/{absence}', [AbsenceController::class, 'update'])->middleware('role:salon_owner,salon_manager,stylist');
         Route::delete('/absences/{absence}', [AbsenceController::class, 'destroy'])->middleware('role:salon_owner,salon_manager');
         Route::post('/absences/{absence}/approve', [AbsenceController::class, 'approve'])->middleware('role:salon_owner,salon_manager');
+    });
+
+    // Enhanced schedule routes
+    Route::prefix('v1/schedule')->middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+        // Shifts
+        Route::get('/shifts', [ScheduleController::class, 'listShifts']); // ?from=&to=&user_id=
+        Route::post('/shifts', [ScheduleController::class, 'upsertShift'])->middleware('role:salon_owner,salon_manager');
+        Route::put('/shifts/{shift}', [ScheduleController::class, 'upsertShift'])->middleware('role:salon_owner,salon_manager');
+        Route::delete('/shifts/{shift}', [ScheduleController::class, 'deleteShift'])->middleware('role:salon_owner,salon_manager');
+
+        // Absences
+        Route::get('/absences', [ScheduleController::class, 'listAbsences']); // ?from=&to=&user_id=
+        Route::post('/absences', [ScheduleController::class, 'requestAbsence']); // stylist self or managers
+        Route::post('/absences/{absence}/decision', [ScheduleController::class, 'decideAbsence'])->middleware('role:salon_owner,salon_manager');
+
+        // Work Rules
+        Route::get('/work-rules', [ScheduleController::class, 'getWorkRules']);
+        Route::put('/work-rules', [ScheduleController::class, 'updateWorkRules'])->middleware('role:salon_owner,salon_manager');
+
+        // Calendar Export
+        Route::get('/ics', [CalendarExportController::class, 'ics']);
     });
 
     // Customer management routes

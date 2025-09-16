@@ -7,6 +7,7 @@ import '../../features/salon_profile/ui/salon_page.dart';
 import '../../features/booking/ui/booking_list_screen.dart';
 import '../../features/booking/ui/booking_wizard_screen.dart';
 import '../../features/staff/ui/staff_calendar_page.dart';
+import '../../features/staff_scheduling/ui/schedule_page.dart';
 import '../../features/customer_profile/ui/customer_list_page.dart';
 import '../../features/customer_profile/ui/customer_detail_page.dart';
 import '../../features/billing_pos/ui/pos_page.dart';
@@ -42,6 +43,7 @@ class AppRouter {
         GoRoute(path: '/bookings', builder: (ctx, st) => const BookingListScreen()),
         GoRoute(path: '/book', builder: (ctx, st) => const BookingWizardScreen()),
         GoRoute(path: '/staff/schedule', builder: (ctx, st) => const StaffCalendarPage()),
+        GoRoute(path: '/schedule', builder: (ctx, st) => const SchedulePage()),
         GoRoute(path: '/customers', builder: (ctx, st) => const CustomerListPage()),
         GoRoute(
           path: '/customers/:id',

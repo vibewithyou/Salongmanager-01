@@ -22,8 +22,11 @@ class AbsencePolicy
         if ($user->hasAnyRole(['salon_owner', 'salon_manager'])) {
             return true;
         }
-        // stylist can edit own request while requested
-        return $user->hasRole('stylist') && $absence->status === 'requested';
+        // stylist can edit own request while pending
+        return $user->hasRole('stylist') && 
+               $absence->status === 'pending' &&
+               ($absence->stylist && $absence->stylist->user_id === $user->id) ||
+               ($absence->user_id === $user->id);
     }
 
     public function delete(User $user, Absence $absence): bool

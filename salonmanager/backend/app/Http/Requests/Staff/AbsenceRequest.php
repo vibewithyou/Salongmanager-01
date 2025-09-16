@@ -8,16 +8,20 @@ class AbsenceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return true; // Policy check in Controller
     }
 
     public function rules(): array
     {
         return [
-            'stylist_id' => ['required', 'integer', 'exists:stylists,id'],
-            'from_date' => ['required', 'date'],
-            'to_date' => ['required', 'date', 'after_or_equal:from_date'],
+            'user_id' => ['required', 'exists:users,id'],
+            'stylist_id' => ['nullable', 'integer', 'exists:stylists,id'],
+            'start_at' => ['required', 'date'],
+            'end_at' => ['required', 'date', 'after:start_at'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
             'type' => ['required', 'in:vacation,sick,other'],
+            'reason' => ['nullable', 'string', 'max:500'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];
     }

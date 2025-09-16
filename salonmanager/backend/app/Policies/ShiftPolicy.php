@@ -23,7 +23,9 @@ class ShiftPolicy
             return true;
         }
         // stylist may confirm/cancel own planned shifts
-        return $user->hasRole('stylist') && $shift->stylist && $shift->stylist->user_id === $user->id;
+        return $user->hasRole('stylist') && 
+               ($shift->stylist && $shift->stylist->user_id === $user->id) ||
+               ($shift->user_id === $user->id);
     }
 
     public function delete(User $user, Shift $shift): bool
