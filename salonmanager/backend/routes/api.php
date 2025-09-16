@@ -12,6 +12,11 @@ use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\Customer\NoteController;
 use App\Http\Controllers\Customer\LoyaltyController;
 use App\Http\Controllers\Customer\DiscountController;
+use App\Http\Controllers\Pos\SessionController;
+use App\Http\Controllers\Pos\InvoiceController;
+use App\Http\Controllers\Pos\PaymentController;
+use App\Http\Controllers\Pos\RefundController;
+use App\Http\Controllers\Pos\ReportController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -112,5 +117,32 @@ Route::prefix('v1')->group(function () {
             Route::post('/customers/{customer}/loyalty/adjust', [LoyaltyController::class, 'adjust'])
                 ->middleware('role:salon_owner,salon_manager,stylist');
         });
+    });
+
+    // POS & Billing routes
+    Route::prefix('pos')->middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+        // Sessions
+        Route::post('/sessions/open', [SessionController::class, 'open'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/sessions/{session}/close', [SessionController::class, 'close'])
+            ->middleware('role:salon_owner,salon_manager');
+
+        // Invoices
+        Route::post('/invoices', [InvoiceController::class, 'store'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+
+        // Payments & Refunds
+        Route::post('/invoices/{invoice}/pay', [PaymentController::class, 'pay'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/invoices/{invoice}/refund', [RefundController::class, 'refund'])
+            ->middleware('role:salon_owner,salon_manager');
+
+        // Reports & Export
+        Route::get('/reports/z', [ReportController::class, 'zReport'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/exports/datev.csv', [ReportController::class, 'datevCsv'])
+            ->middleware('role:salon_owner,salon_manager');
     });
 });
