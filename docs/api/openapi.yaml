@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: SalonManager API
+  version: "1.0.0"
+  description: |
+    Salon management system API providing booking, POS, customer management, and inventory features.
+    Includes GoBD-compliant invoicing and GDPR compliance features.
+servers:
+  - url: https://salongmanager.app/api/v1
+    description: Production server
+  - url: http://localhost:8000/api/v1
+    description: Development server
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate user and create session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+        "422":
+          description: Validation error
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: Returns information about the currently authenticated user
+      security:
+        - sanctum: []
+      responses:
+        "200":
+          description: User information
+        "401":
+          description: Unauthenticated
+
+  /bookings:
+    post:
+      summary: Create booking
+      description: Create a new booking
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_id
+                - stylist_id
+                - service_id
+                - start_at
+                - duration
+              properties:
+                customer_id:
+                  type: integer
+                stylist_id:
+                  type: integer
+                service_id:
+                  type: integer
+                start_at:
+                  type: string
+                  format: date-time
+                duration:
+                  type: integer
+                  description: Duration in minutes
+      responses:
+        "201":
+          description: Booking created successfully
+        "409":
+          description: Booking conflict
+        "422":
+          description: Validation error
+
+  /pos/invoices:
+    post:
+      summary: Create invoice
+      description: Create a new POS invoice
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_id
+                - items
+              properties:
+                customer_id:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      product_id:
+                        type: integer
+                      quantity:
+                        type: number
+                      price:
+                        type: number
+      responses:
+        "201":
+          description: Invoice created successfully
+        "422":
+          description: Validation error
+
+  /pos/invoices/{invoice}/charge:
+    post:
+      summary: Create payment session
+      description: Create a payment session for an invoice
+      security:
+        - sanctum: []
+      parameters:
+        - name: invoice
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment session created
+        "404":
+          description: Invoice not found
+
+  /payments/webhook:
+    post:
+      summary: Payment provider webhook
+      description: Webhook endpoint for payment providers (Stripe, Mollie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Webhook processed successfully
+        "400":
+          description: Invalid webhook data
+
+  /gdpr/export:
+    post:
+      summary: Request GDPR export
+      description: Request a GDPR data export for the current user
+      security:
+        - sanctum: []
+      responses:
+        "202":
+          description: Export request accepted
+        "401":
+          description: Unauthenticated
+
+  /customers:
+    get:
+      summary: List customers
+      description: Get list of customers (staff only)
+      security:
+        - sanctum: []
+      responses:
+        "200":
+          description: List of customers
+        "401":
+          description: Unauthenticated
+        "403":
+          description: Insufficient permissions
+
+  /reviews:
+    get:
+      summary: List reviews
+      description: Get public reviews for the salon
+      responses:
+        "200":
+          description: List of reviews
+
+  /reviews:
+    post:
+      summary: Create review
+      description: Create a new review (customers only)
+      security:
+        - sanctum: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rating
+                - comment
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+      responses:
+        "201":
+          description: Review created successfully
+        "401":
+          description: Unauthenticated
+        "422":
+          description: Validation error
+
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Laravel Sanctum token authentication
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        stylist_id:
+          type: integer
+        service_id:
+          type: integer
+        start_at:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, declined, cancelled]
+        created_at:
+          type: string
+          format: date-time
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        number:
+          type: string
+        salon_id:
+          type: integer
+        customer_id:
+          type: integer
+        total_gross:
+          type: number
+        status:
+          type: string
+          enum: [draft, issued, paid, refunded]
+        issued_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        customer_id:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+        approved:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+security:
+  - sanctum: []

@@ -62,4 +62,14 @@ class Invoice extends Model
     {
         return $this->hasMany(Refund::class);
     }
+
+    /**
+     * Finalize invoice number using GoBD-compliant sequential numbering
+     */
+    public function finalizeNumber(): void
+    {
+        if ($this->number) return;
+        $this->number = \App\Services\Billing\InvoiceNumberService::nextNumber($this->salon_id);
+        $this->save();
+    }
 }

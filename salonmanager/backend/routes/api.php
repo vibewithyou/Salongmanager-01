@@ -62,8 +62,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('/salon/blocks/{block}', [BlockController::class, 'destroy']);
     });
 
-    // Booking routes
-    Route::middleware(['auth:sanctum', 'tenant.required'])->prefix('booking')->group(function () {
+    // Booking routes with scoped rate limiting
+    Route::middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:120,1'])->prefix('booking')->group(function () {
         Route::get('/', [BookingController::class, 'index']);
         Route::post('/', [BookingController::class, 'store'])->middleware('role:customer');
         Route::post('/{booking}/confirm', [BookingController::class, 'confirm'])->middleware('role:stylist,salon_owner,salon_manager');
@@ -71,8 +71,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('role:customer,salon_owner,salon_manager');
     });
 
-    // New booking routes
-    Route::prefix('v1/bookings')->middleware(['auth:sanctum','tenant.required'])->group(function(){
+    // New booking routes with scoped rate limiting
+    Route::prefix('v1/bookings')->middleware(['auth:sanctum','tenant.required','throttle.scope:120,1'])->group(function(){
         Route::post('/', [BookingController::class,'store']); // customer creates
         Route::post('/{booking}/status', [BookingController::class,'updateStatus']); // confirm/decline/cancel
         Route::post('/{booking}/media', [BookingController::class,'attachMedia'])->middleware('role:salon_owner,salon_manager,stylist');
@@ -163,8 +163,8 @@ Route::prefix('v1')->group(function () {
         });
     });
 
-    // POS & Billing routes
-    Route::prefix('pos')->middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+    // POS & Billing routes with stricter rate limiting
+    Route::prefix('pos')->middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:60,1'])->group(function () {
         // Sessions
         Route::post('/sessions/open', [SessionController::class, 'open'])
             ->middleware('role:salon_owner,salon_manager,stylist');
@@ -311,6 +311,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/revoke', [RoleController::class,'revoke'])->middleware('role:owner,platform_admin,salon_owner,salon_manager');
     });
 
-    // Payment webhooks (no auth required)
-    Route::post('/payments/webhook', [PaymentWebhookController::class, 'handle']);
+    // Payment webhooks with specific rate limiting (no auth required)
+    Route::post('/payments/webhook', [PaymentWebhookController::class, 'handle'])
+        ->middleware(['throttle.scope:30,1']);
 });
