@@ -13,6 +13,8 @@ use App\Policies\AbsencePolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\CustomerNotePolicy;
 use App\Policies\LoyaltyPolicy;
+use App\Policies\PosPolicy;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -34,6 +36,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // POS Gates
+        Gate::define('pos.use', fn(User $user) => $user->hasAnyRole(['salon_owner', 'salon_manager', 'stylist']));
+        Gate::define('pos.manage', fn(User $user) => $user->hasAnyRole(['salon_owner', 'salon_manager']));
     }
 }
