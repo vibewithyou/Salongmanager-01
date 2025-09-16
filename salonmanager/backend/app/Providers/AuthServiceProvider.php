@@ -8,12 +8,14 @@ use App\Models\Absence;
 use App\Models\User;
 use App\Models\CustomerNote;
 use App\Models\LoyaltyCard;
+use App\Models\Booking;
 use App\Policies\ShiftPolicy;
 use App\Policies\AbsencePolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\CustomerNotePolicy;
 use App\Policies\LoyaltyPolicy;
 use App\Policies\PosPolicy;
+use App\Policies\BookingPolicy;
 use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
@@ -29,6 +31,7 @@ class AuthServiceProvider extends ServiceProvider
         User::class => CustomerPolicy::class,
         CustomerNote::class => CustomerNotePolicy::class,
         LoyaltyCard::class => LoyaltyPolicy::class,
+        Booking::class => BookingPolicy::class,
     ];
 
     /**
