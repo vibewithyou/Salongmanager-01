@@ -16,10 +16,15 @@ class Booking extends Model
         'salon_id',
         'customer_id',
         'stylist_id',
+        'service_id',
         'start_at',
         'end_at',
+        'duration',
+        'buffer_before',
+        'buffer_after',
         'status',
         'notes',
+        'note',
     ];
 
     protected $casts = [
@@ -44,7 +49,12 @@ class Booking extends Model
 
     public function stylist(): BelongsTo
     {
-        return $this->belongsTo(Stylist::class);
+        return $this->belongsTo(User::class, 'stylist_id');
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function services(): BelongsToMany

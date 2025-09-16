@@ -11,6 +11,5 @@ class Canceled
 
     public function __construct(public int $bookingId)
     {
-        //
     }
 }

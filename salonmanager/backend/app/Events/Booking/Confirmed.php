@@ -11,6 +11,5 @@ class Confirmed
 
     public function __construct(public int $bookingId)
     {
-        //
     }
 }

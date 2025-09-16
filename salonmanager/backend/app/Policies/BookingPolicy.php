@@ -122,7 +122,30 @@ class BookingPolicy
             return true;
         }
 
+        // Stylist can cancel bookings assigned to them
+        if ($user->hasRole('stylist') && $booking->stylist_id === $user->id) {
+            return true;
+        }
+
         // Salon owner/manager can cancel any booking in their salon
+        if ($user->hasAnyRole(['salon_owner', 'salon_manager'])) {
+            return $booking->salon_id === $user->current_salon_id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine whether the user can modify the booking (confirm/decline).
+     */
+    public function modify(User $user, Booking $booking): bool
+    {
+        // Stylist can only modify their own bookings
+        if ($user->hasRole('stylist') && $booking->stylist_id === $user->id) {
+            return true;
+        }
+
+        // Salon owner/manager can modify any booking in their salon
         if ($user->hasAnyRole(['salon_owner', 'salon_manager'])) {
             return $booking->salon_id === $user->current_salon_id;
         }

@@ -5,7 +5,7 @@ namespace App\Events\Booking;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class Declined
+class Created
 {
     use Dispatchable, SerializesModels;
 

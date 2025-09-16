@@ -67,6 +67,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('role:customer,salon_owner,salon_manager');
     });
 
+    // New booking routes
+    Route::prefix('v1/bookings')->middleware(['auth:sanctum','tenant.required'])->group(function(){
+        Route::post('/', [BookingController::class,'store']); // customer creates
+        Route::post('/{booking}/status', [BookingController::class,'updateStatus']); // confirm/decline/cancel
+        Route::post('/{booking}/media', [BookingController::class,'attachMedia'])->middleware('role:salon_owner,salon_manager,stylist');
+    });
+
     // Services and Stylists routes (for booking wizard)
     Route::middleware(['auth:sanctum', 'tenant.required'])->group(function () {
         Route::get('/services', [BookingController::class, 'services']);
