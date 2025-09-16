@@ -1,0 +1,9 @@
+# PHPStan baseline configuration for SalonManager backend
+parameters:
+  level: 1
+  paths:
+    - ../../backend
+  excludePaths:
+    - ../../backend/vendor
+  checkMissingIterableValueType: false
+
