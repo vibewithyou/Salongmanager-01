@@ -15,6 +15,7 @@ import '../../features/search_map/ui/search_map_page.dart';
 import '../../features/inventory/ui/inventory_page.dart';
 import '../../features/reports/ui/reports_dashboard.dart';
 import '../../features/notify/ui/notify_prefs_page.dart';
+import '../../features/gdpr/ui/gdpr_page.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
@@ -55,6 +56,7 @@ class AppRouter {
         GoRoute(path: '/reports', builder: (ctx, st) => const ReportsDashboard()),
         GoRoute(path: '/search', builder: (ctx, st) => const SearchMapPage()),
         GoRoute(path: '/settings/notifications', builder: (ctx, st) => const NotifyPrefsPage()),
+        GoRoute(path: '/profile/gdpr', builder: (ctx, st) => const GdprPage()),
       ],
     );
   }
