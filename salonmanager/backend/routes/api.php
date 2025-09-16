@@ -17,6 +17,8 @@ use App\Http\Controllers\Pos\InvoiceController;
 use App\Http\Controllers\Pos\PaymentController;
 use App\Http\Controllers\Pos\RefundController;
 use App\Http\Controllers\Pos\ReportController;
+use App\Http\Controllers\PosController;
+use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\Search\SearchController;
 use App\Http\Controllers\Inventory\ProductController;
 use App\Http\Controllers\Inventory\StockController;
@@ -158,6 +160,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/invoices/{invoice}/refund', [RefundController::class, 'refund'])
             ->middleware('role:salon_owner,salon_manager');
 
+        // Enhanced Payment Operations
+        Route::post('/invoices/{invoice}/charge', [PosController::class, 'charge'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/invoices/{invoice}/refund-payment', [PosController::class, 'refund'])
+            ->middleware('role:salon_owner,salon_manager');
+        Route::get('/invoices/{invoice}/payment-status', [PosController::class, 'status'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+        Route::get('/invoices/open', [PosController::class, 'openInvoices'])
+            ->middleware('role:salon_owner,salon_manager,stylist');
+
         // Reports & Export
         Route::get('/reports/z', [ReportController::class, 'zReport'])
             ->middleware('role:salon_owner,salon_manager');
@@ -275,4 +287,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/grant', [RoleController::class,'grant'])->middleware('role:owner,platform_admin,salon_owner,salon_manager');
         Route::post('/revoke', [RoleController::class,'revoke'])->middleware('role:owner,platform_admin,salon_owner,salon_manager');
     });
+
+    // Payment webhooks (no auth required)
+    Route::post('/payments/webhook', [PaymentWebhookController::class, 'handle']);
 });

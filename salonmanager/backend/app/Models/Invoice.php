@@ -22,6 +22,8 @@ class Invoice extends Model
         'total_gross',
         'tax_breakdown',
         'status',
+        'payment_id',
+        'payment_provider',
         'meta'
     ];
 
