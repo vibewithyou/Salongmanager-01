@@ -10,18 +10,13 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
 
-    'allowed_origins' => [
-        'https://salongmanager.app',
-        'https://*.salongmanager.app',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000'
-    ],
+    'allowed_origins' => ['https://salongmanager.app','http://localhost:*','http://127.0.0.1:*'],
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => ['Content-Type','X-Requested-With','Authorization','X-Api-Scope'],
 
     'exposed_headers' => [],
 

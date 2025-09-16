@@ -12,15 +12,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [
+            \App\Http\Middleware\SecureHeaders::class,
+        ]);
+        
         $middleware->api(append: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\TenantResolveMiddleware::class,
+            \App\Http\Middleware\SecureHeaders::class,
         ]);
         
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            'throttle.scope' => \App\Http\Middleware\ScopeRateLimit::class,
             'role' => \App\Http\Middleware\RequireRole::class,
             'audit' => \App\Http\Middleware\AuditSensitive::class,
         ]);

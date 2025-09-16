@@ -38,6 +38,7 @@ return [
             'driver' => 'stack',
             'channels' => explode(',', env('LOG_STACK', 'single')),
             'ignore_exceptions' => false,
+            'tap' => [App\Support\Logging\ApplyProcessors::class],
         ],
 
         'single' => [
