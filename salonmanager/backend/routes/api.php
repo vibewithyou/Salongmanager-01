@@ -8,6 +8,10 @@ use App\Http\Controllers\Salon\BlockController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Staff\ShiftController;
 use App\Http\Controllers\Staff\AbsenceController;
+use App\Http\Controllers\Customer\CustomerController;
+use App\Http\Controllers\Customer\NoteController;
+use App\Http\Controllers\Customer\LoyaltyController;
+use App\Http\Controllers\Customer\DiscountController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -70,5 +74,43 @@ Route::prefix('v1')->group(function () {
         Route::put('/absences/{absence}', [AbsenceController::class, 'update'])->middleware('role:salon_owner,salon_manager,stylist');
         Route::delete('/absences/{absence}', [AbsenceController::class, 'destroy'])->middleware('role:salon_owner,salon_manager');
         Route::post('/absences/{absence}/approve', [AbsenceController::class, 'approve'])->middleware('role:salon_owner,salon_manager');
+    });
+
+    // Customer management routes
+    Route::middleware(['tenant.required'])->group(function () {
+        // public view of active discounts (optional)
+        Route::get('/discounts', [DiscountController::class, 'index']);
+
+        Route::middleware(['auth:sanctum'])->group(function () {
+            // Customer directory (staff)
+            Route::get('/customers', [CustomerController::class, 'index'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+            Route::get('/customers/{customer}', [CustomerController::class, 'show'])
+                ->middleware('role:salon_owner,salon_manager,stylist,customer');
+            Route::put('/customers/{customer}', [CustomerController::class, 'update'])
+                ->middleware('role:salon_owner,salon_manager,customer');
+
+            // DSGVO requests
+            Route::post('/customers/{customer}/request-export', [CustomerController::class, 'requestExport'])
+                ->middleware('role:salon_owner,salon_manager,customer');
+            Route::post('/customers/{customer}/request-deletion', [CustomerController::class, 'requestDeletion'])
+                ->middleware('role:salon_owner,salon_manager,customer');
+
+            // Notes
+            Route::get('/customers/{customer}/notes', [NoteController::class, 'index'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+            Route::post('/customers/notes', [NoteController::class, 'store'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+            Route::put('/customers/notes/{note}', [NoteController::class, 'update'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+            Route::delete('/customers/notes/{note}', [NoteController::class, 'destroy'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+
+            // Loyalty
+            Route::get('/customers/{customer}/loyalty', [LoyaltyController::class, 'show'])
+                ->middleware('role:salon_owner,salon_manager,stylist,customer');
+            Route::post('/customers/{customer}/loyalty/adjust', [LoyaltyController::class, 'adjust'])
+                ->middleware('role:salon_owner,salon_manager,stylist');
+        });
     });
 });
