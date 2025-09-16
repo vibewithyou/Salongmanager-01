@@ -13,6 +13,7 @@ import '../../features/billing_pos/ui/pos_page.dart';
 import '../../features/billing_pos/ui/z_report_page.dart';
 import '../../features/search_map/ui/search_map_page.dart';
 import '../../features/inventory/ui/inventory_page.dart';
+import '../../features/reports/ui/reports_dashboard.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
@@ -50,6 +51,7 @@ class AppRouter {
         GoRoute(path: '/pos', builder: (ctx, st) => const PosPage()),
         GoRoute(path: '/pos/z-report', builder: (ctx, st) => const ZReportPage()),
         GoRoute(path: '/inventory', builder: (ctx, st) => const InventoryPage()),
+        GoRoute(path: '/reports', builder: (ctx, st) => const ReportsDashboard()),
         GoRoute(path: '/search', builder: (ctx, st) => const SearchMapPage()),
       ],
     );
