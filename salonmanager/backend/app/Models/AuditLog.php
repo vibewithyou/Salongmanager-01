@@ -3,15 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Support\Tenancy\SalonOwned;
 
 class AuditLog extends Model
 {
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = false;
+    use SalonOwned;
 
     /**
      * The attributes that are mass assignable.
@@ -19,12 +15,16 @@ class AuditLog extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
         'salon_id',
+        'user_id',
         'action',
-        'ip',
-        'user_agent',
+        'entity_type',
+        'entity_id',
         'meta',
+        'ip',
+        'ua',
+        'method',
+        'path'
     ];
 
     /**
@@ -36,7 +36,6 @@ class AuditLog extends Model
     {
         return [
             'meta' => 'array',
-            'created_at' => 'datetime',
         ];
     }
 
