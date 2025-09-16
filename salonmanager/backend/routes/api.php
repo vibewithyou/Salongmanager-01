@@ -26,6 +26,7 @@ use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Media\UploadController;
 use App\Http\Controllers\Notify\{PreferencesController, WebhooksController};
+use App\Http\Controllers\ReviewController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -224,5 +225,28 @@ Route::prefix('v1')->group(function () {
     Route::prefix('search')->group(function () {
         Route::get('/salons', [SearchController::class, 'salons']);
         Route::get('/availability', [SearchController::class, 'availability']);
+    });
+
+    // Review routes
+    Route::prefix('reviews')->middleware(['tenant.required'])->group(function () {
+        // Public endpoints (no auth required)
+        Route::get('/', [ReviewController::class, 'index']);
+        
+        // Authenticated endpoints
+        Route::middleware(['auth:sanctum'])->group(function () {
+            // Customer endpoints
+            Route::get('/my-review', [ReviewController::class, 'myReview']);
+            Route::middleware(['role:customer'])->group(function () {
+                Route::post('/', [ReviewController::class, 'store']);
+                Route::put('/{review}', [ReviewController::class, 'update']);
+            });
+            Route::delete('/{review}', [ReviewController::class, 'destroy']);
+            
+            // Moderation endpoints (salon owners/managers)
+            Route::middleware(['role:salon_owner,salon_manager'])->group(function () {
+                Route::get('/moderation', [ReviewController::class, 'moderation']);
+                Route::post('/{review}/toggle-approval', [ReviewController::class, 'toggleApproval']);
+            });
+        });
     });
 });
