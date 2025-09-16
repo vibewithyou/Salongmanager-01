@@ -1,0 +1,49 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+.idea/
+.vscode/
+node_modules/
+dist/
+build/
+
+# Laravel / PHP
+/vendor/
+/storage/*.key
+/storage/*.log
+/storage/app/public/
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/bootstrap/cache/*
+.env
+.env.*
+composer.lock
+
+# Flutter / Dart
+**/build/
+.dart_tool/
+.packages
+pubspec.lock
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/ServiceDefinitions.json
+macos/Flutter/ephemeral/
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/debug.keystore
+
+# IDEs
+.fleet/
+.project
+.classpath
+.settings/
+
