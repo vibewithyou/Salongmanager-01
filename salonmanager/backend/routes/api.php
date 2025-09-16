@@ -6,6 +6,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Salon\ProfileController;
 use App\Http\Controllers\Salon\BlockController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Staff\ShiftController;
+use App\Http\Controllers\Staff\AbsenceController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -48,5 +50,25 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'tenant.required'])->group(function () {
         Route::get('/services', [BookingController::class, 'services']);
         Route::get('/stylists', [BookingController::class, 'stylists']);
+    });
+
+    // Staff scheduling routes
+    Route::prefix('staff')->middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+        // Shifts
+        Route::get('/shifts', [ShiftController::class, 'index'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/shifts', [ShiftController::class, 'store'])->middleware('role:salon_owner,salon_manager');
+        Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::delete('/shifts/{shift}', [ShiftController::class, 'destroy'])->middleware('role:salon_owner,salon_manager');
+
+        // Drag/Resize helpers
+        Route::post('/shifts/{shift}/move', [ShiftController::class, 'move'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/shifts/{shift}/resize', [ShiftController::class, 'resize'])->middleware('role:salon_owner,salon_manager,stylist');
+
+        // Absences
+        Route::get('/absences', [AbsenceController::class, 'index'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::post('/absences', [AbsenceController::class, 'store'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::put('/absences/{absence}', [AbsenceController::class, 'update'])->middleware('role:salon_owner,salon_manager,stylist');
+        Route::delete('/absences/{absence}', [AbsenceController::class, 'destroy'])->middleware('role:salon_owner,salon_manager');
+        Route::post('/absences/{absence}/approve', [AbsenceController::class, 'approve'])->middleware('role:salon_owner,salon_manager');
     });
 });

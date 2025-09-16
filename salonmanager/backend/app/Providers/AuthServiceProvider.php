@@ -3,17 +3,21 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\Shift;
+use App\Models\Absence;
+use App\Policies\ShiftPolicy;
+use App\Policies\AbsencePolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
     /**
-     * The model to policy mappings for the application.
+     * The policy mappings for the application.
      *
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        \App\Models\Salon::class        => \App\Policies\SalonPolicy::class,
-        \App\Models\ContentBlock::class => \App\Policies\ContentBlockPolicy::class,
+        Shift::class => ShiftPolicy::class,
+        Absence::class => AbsencePolicy::class,
     ];
 
     /**
