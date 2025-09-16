@@ -6,6 +6,7 @@ import '../../features/auth/ui/login_screen.dart';
 import '../../features/salon_profile/ui/salon_page.dart';
 import '../../features/booking/ui/booking_list_screen.dart';
 import '../../features/booking/ui/booking_wizard_screen.dart';
+import '../../features/staff/ui/staff_calendar_page.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
@@ -31,6 +32,7 @@ class AppRouter {
         GoRoute(path: '/', builder: (ctx, st) => const SalonPage()),
         GoRoute(path: '/bookings', builder: (ctx, st) => const BookingListScreen()),
         GoRoute(path: '/book', builder: (ctx, st) => const BookingWizardScreen()),
+        GoRoute(path: '/staff/schedule', builder: (ctx, st) => const StaffCalendarPage()),
       ],
     );
   }

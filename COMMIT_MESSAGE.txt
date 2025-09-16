@@ -1,1 +1,38 @@
-feat(booking): booking core wizard (api + models + flutter ui flow + notes/images stub)
+feat(staff): scheduling (shifts + absences) api, policies, calendar views (day/week/month) with actions stubs
+
+Backend:
+- Add migrations for shift_templates, shifts, and absences tables
+- Create Eloquent models with salon tenancy and relationships
+- Implement form request validation for shifts and absences
+- Add RBAC policies for role-based access control
+- Create API controllers with CRUD operations and drag/resize endpoints
+- Add API routes with proper middleware and role restrictions
+
+Frontend:
+- Create Flutter models for Shift and Absence with JSON serialization
+- Implement StaffRepository for API communication
+- Add Riverpod state management with StaffController
+- Create calendar UI with Day/Week/Month views
+- Add routing for staff calendar page
+- Include color-coded status indicators and action menus
+
+Documentation:
+- Add comprehensive API documentation for staff scheduling endpoints
+- Create role matrix showing permissions for different user types
+- Include UI wireframes and design specifications
+
+Features:
+- Shift management with status tracking (planned, confirmed, swapped, canceled)
+- Absence requests with approval workflow
+- Calendar views with different time perspectives
+- Drag & drop stubs for future enhancement
+- Role-based access control (owner/manager/stylist permissions)
+- Tenant isolation for multi-salon support
+
+Self-Check:
+✅ Tabellen: shift_templates, shifts, absences
+✅ Endpunkte /v1/staff/... mit RBAC & Tenant
+✅ Move/Resize API vorhanden
+✅ Flutter: Repo, State, Calendar-Page mit Day/Week/Month Views
+✅ Farbkennzeichnung pro Status
+✅ Docs & Tests (Stubs) erstellt
