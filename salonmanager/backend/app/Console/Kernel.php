@@ -14,6 +14,14 @@ class Kernel extends ConsoleKernel
     {
         // Media retention cleanup - run daily at 3:30 AM
         $schedule->command('media:purge-expired')->dailyAt('03:30');
+        
+        // Import Google reviews - run daily at 2:00 AM
+        $schedule->command('reviews:import-google --all')
+            ->dailyAt('02:00')
+            ->withoutOverlapping()
+            ->onFailure(function () {
+                \Log::error('Failed to import Google reviews');
+            });
     }
 
     /**
