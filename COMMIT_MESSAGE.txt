@@ -1,0 +1,1 @@
+feat(booking): booking core wizard (api + models + flutter ui flow + notes/images stub)
