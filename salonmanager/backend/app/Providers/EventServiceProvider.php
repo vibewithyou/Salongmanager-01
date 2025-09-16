@@ -16,6 +16,7 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+            \App\Listeners\AssignDefaultCustomerRole::class,
         ],
         \App\Events\Booking\Confirmed::class => [\App\Listeners\Notify\BookingConfirmedListener::class],
         \App\Events\Booking\Declined::class  => [\App\Listeners\Notify\BookingDeclinedListener::class],

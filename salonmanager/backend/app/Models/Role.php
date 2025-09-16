@@ -6,13 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    protected $fillable = ['name','label'];
+  protected $fillable = ['name','scope'];
+  public const GLOBAL = 'global';
+  public const SALON  = 'salon';
 
-    public const OWNER = 'owner';
-    public const PLATFORM_ADMIN = 'platform_admin';
-    public const SALON_OWNER = 'salon_owner';
-    public const SALON_MANAGER = 'salon_manager';
-    public const STYLIST = 'stylist';
-    public const CUSTOMER = 'customer';
+  public static function idBy(string $name): ?int {
+    return static::query()->where('name',$name)->value('id');
+  }
 }
-

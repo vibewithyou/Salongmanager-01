@@ -28,6 +28,7 @@ use App\Http\Controllers\Media\UploadController;
 use App\Http\Controllers\Notify\{PreferencesController, WebhooksController};
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\GdprController;
+use App\Http\Controllers\Rbac\RoleController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -256,5 +257,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/export', [GdprController::class,'requestExport']);
         Route::post('/delete', [GdprController::class,'requestDelete']);
         Route::middleware('role:salon_owner,platform_admin')->post('/delete/{gdpr}/confirm', [GdprController::class,'confirmDelete']);
+    });
+
+    // RBAC routes
+    Route::prefix('rbac')->middleware(['auth:sanctum','tenant.required'])->group(function () {
+        Route::get('/me/roles', [RoleController::class,'myRoles']);
+        Route::post('/grant', [RoleController::class,'grant'])->middleware('role:owner,platform_admin,salon_owner,salon_manager');
+        Route::post('/revoke', [RoleController::class,'revoke'])->middleware('role:owner,platform_admin,salon_owner,salon_manager');
     });
 });
