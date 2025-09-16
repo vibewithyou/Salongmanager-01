@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../state/salon_controller.dart';
 import '../models/content_block.dart';
 
@@ -13,7 +14,16 @@ class SalonPage extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      appBar: AppBar(title: Text(state.profile?.name ?? 'Salon')),
+      appBar: AppBar(
+        title: Text(state.profile?.name ?? 'Salon'),
+        actions: [
+          IconButton(
+            onPressed: () => context.go('/bookings'),
+            icon: const Icon(Icons.calendar_today),
+            tooltip: 'My Bookings',
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: state.blocks.where((b)=>b.isActive).map((b) => _buildBlock(context, b)).toList(),
@@ -32,7 +42,6 @@ class SalonPage extends ConsumerWidget {
         return _TextBlock(text: text, title: b.title);
       case 'cta':
         final label = b.config['label'] ?? 'Jetzt buchen';
-        // TODO: tie-in booking route later
         return _CtaBlock(label: label);
       case 'gallery':
         // TODO: render image grid from config['images'] (list of urls)
@@ -102,7 +111,7 @@ class _CtaBlock extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: ElevatedButton(
         onPressed: () {
-          // TODO: navigate to booking wizard
+          context.go('/book');
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal:16, vertical:12),

@@ -5,6 +5,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Salon\ProfileController;
 use App\Http\Controllers\Salon\BlockController;
+use App\Http\Controllers\BookingController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -32,5 +33,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/salon/blocks/{block}', [BlockController::class, 'show']);
         Route::put('/salon/blocks/{block}', [BlockController::class, 'update']);
         Route::delete('/salon/blocks/{block}', [BlockController::class, 'destroy']);
+    });
+
+    // Booking routes
+    Route::middleware(['auth:sanctum', 'tenant.required'])->prefix('booking')->group(function () {
+        Route::get('/', [BookingController::class, 'index']);
+        Route::post('/', [BookingController::class, 'store'])->middleware('role:customer');
+        Route::post('/{booking}/confirm', [BookingController::class, 'confirm'])->middleware('role:stylist,salon_owner,salon_manager');
+        Route::post('/{booking}/decline', [BookingController::class, 'decline'])->middleware('role:stylist,salon_owner,salon_manager');
+        Route::post('/{booking}/cancel', [BookingController::class, 'cancel'])->middleware('role:customer,salon_owner,salon_manager');
+    });
+
+    // Services and Stylists routes (for booking wizard)
+    Route::middleware(['auth:sanctum', 'tenant.required'])->group(function () {
+        Route::get('/services', [BookingController::class, 'services']);
+        Route::get('/stylists', [BookingController::class, 'stylists']);
     });
 });
