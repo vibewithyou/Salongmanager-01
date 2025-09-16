@@ -16,12 +16,12 @@ return new class extends Migration
             $table->foreignId('salon_id')->constrained('salons')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('type'); // export|delete
-            $table->string('status')->default('pending'); // pending|done|denied
-            $table->json('payload')->nullable(); // e.g. export snapshot metadata
+            $table->string('status')->default('pending'); // pending|processing|done|denied|failed
+            $table->string('artifact_path')->nullable(); // exports/tenant/.../gdpr_{id}.zip
+            $table->json('meta')->nullable(); // sizes, counts ...
             $table->timestamps();
 
-            $table->index(['salon_id', 'user_id']);
-            $table->index(['type', 'status']);
+            $table->index(['salon_id', 'user_id', 'type', 'status']);
         });
     }
 

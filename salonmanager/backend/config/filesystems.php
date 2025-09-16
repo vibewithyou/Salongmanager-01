@@ -68,6 +68,12 @@ return [
             'throw' => true,
         ],
 
+        'exports' => [
+            'driver' => 'local',
+            'root' => storage_path('app/exports'),
+            'throw' => true,
+        ],
+
     ],
 
     /*
