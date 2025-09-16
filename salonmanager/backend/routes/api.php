@@ -32,6 +32,7 @@ use App\Http\Controllers\Media\UploadController;
 use App\Http\Controllers\Notify\{PreferencesController, WebhooksController};
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\GdprController;
+use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\Rbac\RoleController;
 
 Route::prefix('v1')->group(function () {
@@ -314,4 +315,8 @@ Route::prefix('v1')->group(function () {
     // Payment webhooks with specific rate limiting (no auth required)
     Route::post('/payments/webhook', [PaymentWebhookController::class, 'handle'])
         ->middleware(['throttle.scope:30,1']);
+
+    // Consent routes
+    Route::post('/consents', [ConsentController::class, 'store'])
+        ->middleware(['auth:sanctum', 'tenant.required']);
 });

@@ -22,6 +22,12 @@ class Kernel extends ConsoleKernel
             ->onFailure(function () {
                 \Log::error('Failed to import Google reviews');
             });
+
+        // Backup cleanup and creation
+        $schedule->command('backup:clean')->dailyAt('02:00');
+        $schedule->command('backup:run')->dailyAt('02:15');
+        // Test-restore reminder weekly:
+        $schedule->command('backup:list')->weeklyOn(1, '08:00');
     }
 
     /**

@@ -146,7 +146,7 @@ jobs:
         with:
           definition-file: docs/api/openapi.yaml
 
-  build-frontend:
+  frontend:
     runs-on: ubuntu-latest
     
     steps:
@@ -160,15 +160,19 @@ jobs:
 
     - name: Install dependencies
       run: flutter pub get
-      working-directory: ./frontend
+      working-directory: ./salonmanager/frontend
 
     - name: Run tests
       run: flutter test
-      working-directory: ./frontend
+      working-directory: ./salonmanager/frontend
+
+    - name: Run integration tests
+      run: flutter test integration_test
+      working-directory: ./salonmanager/frontend
 
     - name: Build web
       run: flutter build web --release
-      working-directory: ./frontend
+      working-directory: ./salonmanager/frontend
 
   security-audit:
     runs-on: ubuntu-latest
@@ -198,7 +202,7 @@ jobs:
       working-directory: ./
 
   deploy-staging:
-    needs: [backend, build-frontend, security-audit, api]
+    needs: [backend, frontend, security-audit, api]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     
@@ -212,7 +216,7 @@ jobs:
         # Example: docker-compose up -d
 
   deploy-production:
-    needs: [backend, build-frontend, security-audit, api, e2e]
+    needs: [backend, frontend, security-audit, api, e2e]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     

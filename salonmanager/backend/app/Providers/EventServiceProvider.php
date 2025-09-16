@@ -22,6 +22,7 @@ class EventServiceProvider extends ServiceProvider
         // Notification listeners
         \App\Events\Booking\Confirmed::class => [
             \App\Listeners\Notify\BookingConfirmedListener::class,
+            \App\Listeners\SendBookingConfirmedNotification::class,
             \App\Listeners\Audit\BookingAuditListener::class.'@confirmed',
         ],
         \App\Events\Booking\Declined::class  => [
