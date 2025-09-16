@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RequireRole::class,
             'audit' => \App\Http\Middleware\AuditSensitive::class,
             'tenant.required' => \App\Http\Middleware\TenantRequired::class,
+            'cache.response' => \App\Http\Middleware\ResponseCache::class,
+            '2fa' => \App\Http\Middleware\EnsureTwoFactorConfirmed::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

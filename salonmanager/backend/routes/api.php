@@ -34,6 +34,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\GdprController;
 use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\Rbac\RoleController;
+use App\Http\Controllers\Gallery\{GalleryAlbumController, GalleryPhotoController, GalleryConsentController};
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -47,12 +48,21 @@ Route::prefix('v1')->group(function () {
 
         // Mobile/PAT flow
         Route::post('/token', [AuthController::class, 'token']);
+
+        // 2FA endpoints
+        Route::middleware(['auth:sanctum', 'role:owner,platform_admin,salon_owner'])->group(function () {
+            Route::post('/2fa/enable', [AuthController::class, 'enable2FA']);
+            Route::post('/2fa/confirm', [AuthController::class, 'confirm2FA']);
+            Route::post('/2fa/disable', [AuthController::class, 'disable2FA']);
+        });
     });
 
     // Salon profile and content blocks
-    // public read
-    Route::get('/salon/profile', [ProfileController::class, 'show'])->middleware('tenant.required');
-    Route::get('/salon/blocks',  [BlockController::class, 'index'])->middleware('tenant.required');
+    // public read with response caching
+    Route::get('/salon/profile', [ProfileController::class, 'show'])
+        ->middleware(['tenant.required', 'cache.response:120']);
+    Route::get('/salon/blocks',  [BlockController::class, 'index'])
+        ->middleware(['tenant.required', 'cache.response:120']);
 
     // protected write
     Route::middleware(['auth:sanctum','tenant.required','role:salon_owner,salon_manager'])->group(function () {
@@ -64,7 +74,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Booking routes with scoped rate limiting
-    Route::middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:120,1'])->prefix('booking')->group(function () {
+    Route::middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:90,1'])->prefix('booking')->group(function () {
         Route::get('/', [BookingController::class, 'index']);
         Route::post('/', [BookingController::class, 'store'])->middleware('role:customer');
         Route::post('/{booking}/confirm', [BookingController::class, 'confirm'])->middleware('role:stylist,salon_owner,salon_manager');
@@ -73,16 +83,18 @@ Route::prefix('v1')->group(function () {
     });
 
     // New booking routes with scoped rate limiting
-    Route::prefix('v1/bookings')->middleware(['auth:sanctum','tenant.required','throttle.scope:120,1'])->group(function(){
+    Route::prefix('v1/bookings')->middleware(['auth:sanctum','tenant.required','throttle.scope:90,1'])->group(function(){
         Route::post('/', [BookingController::class,'store']); // customer creates
         Route::post('/{booking}/status', [BookingController::class,'updateStatus']); // confirm/decline/cancel
         Route::post('/{booking}/media', [BookingController::class,'attachMedia'])->middleware('role:salon_owner,salon_manager,stylist');
     });
 
-    // Services and Stylists routes (for booking wizard)
+    // Services and Stylists routes (for booking wizard) with response caching
     Route::middleware(['auth:sanctum', 'tenant.required'])->group(function () {
-        Route::get('/services', [BookingController::class, 'services']);
-        Route::get('/stylists', [BookingController::class, 'stylists']);
+        Route::get('/services', [BookingController::class, 'services'])
+            ->middleware('cache.response:60');
+        Route::get('/stylists', [BookingController::class, 'stylists'])
+            ->middleware('cache.response:60');
     });
 
     // Staff scheduling routes
@@ -165,7 +177,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // POS & Billing routes with stricter rate limiting
-    Route::prefix('pos')->middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:60,1'])->group(function () {
+    Route::prefix('pos')->middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:45,1'])->group(function () {
         // Sessions
         Route::post('/sessions/open', [SessionController::class, 'open'])
             ->middleware('role:salon_owner,salon_manager,stylist');
@@ -266,16 +278,19 @@ Route::prefix('v1')->group(function () {
       Route::delete('/webhooks/{webhook}', [WebhooksController::class,'destroy'])->middleware('role:salon_owner,salon_manager');
     });
 
-    // Public search routes (no auth, no tenant binding)
+    // Public search routes (no auth, no tenant binding) with response caching
     Route::prefix('search')->group(function () {
-        Route::get('/salons', [SearchController::class, 'salons']);
-        Route::get('/availability', [SearchController::class, 'availability']);
+        Route::get('/salons', [SearchController::class, 'salons'])
+            ->middleware(['cache.response:300', 'throttle.scope:120,1']);
+        Route::get('/availability', [SearchController::class, 'availability'])
+            ->middleware(['cache.response:60', 'throttle.scope:120,1']);
     });
 
     // Review routes
     Route::prefix('reviews')->middleware(['tenant.required'])->group(function () {
-        // Public endpoints (no auth required)
-        Route::get('/', [ReviewController::class, 'index']);
+        // Public endpoints (no auth required) with response caching
+        Route::get('/', [ReviewController::class, 'index'])
+            ->middleware('cache.response:60');
         
         // Authenticated endpoints
         Route::middleware(['auth:sanctum'])->group(function () {
@@ -323,4 +338,35 @@ Route::prefix('v1')->group(function () {
     // Consent routes
     Route::post('/consents', [ConsentController::class, 'store'])
         ->middleware(['auth:sanctum', 'tenant.required']);
+
+    // Gallery routes
+    Route::prefix('gallery')->middleware(['tenant.required'])->group(function () {
+        // Albums
+        Route::get('/albums', [GalleryAlbumController::class, 'index']);
+        Route::post('/albums', [GalleryAlbumController::class, 'store'])
+            ->middleware(['auth:sanctum', 'role:salon_owner,salon_manager']);
+        Route::get('/albums/{album}', [GalleryAlbumController::class, 'show']);
+        Route::put('/albums/{album}', [GalleryAlbumController::class, 'update'])
+            ->middleware(['auth:sanctum']);
+        Route::delete('/albums/{album}', [GalleryAlbumController::class, 'destroy'])
+            ->middleware(['auth:sanctum']);
+
+        // Photos
+        Route::get('/photos', [GalleryPhotoController::class, 'index']);
+        Route::post('/photos', [GalleryPhotoController::class, 'store'])
+            ->middleware(['auth:sanctum', 'role:stylist,salon_manager,salon_owner']);
+        Route::get('/photos/{photo}', [GalleryPhotoController::class, 'show']);
+        Route::post('/photos/{photo}/moderate', [GalleryPhotoController::class, 'moderate'])
+            ->middleware(['auth:sanctum', 'role:salon_owner,salon_manager']);
+        Route::delete('/photos/{photo}', [GalleryPhotoController::class, 'destroy'])
+            ->middleware(['auth:sanctum']);
+
+        // Consents
+        Route::post('/consents', [GalleryConsentController::class, 'store'])
+            ->middleware(['auth:sanctum']);
+        Route::put('/consents/{consent}', [GalleryConsentController::class, 'update'])
+            ->middleware(['auth:sanctum']);
+        Route::delete('/consents/{consent}', [GalleryConsentController::class, 'destroy'])
+            ->middleware(['auth:sanctum']);
+    });
 });

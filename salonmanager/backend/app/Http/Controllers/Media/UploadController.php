@@ -73,8 +73,8 @@ class UploadController extends Controller
             'retention_until' => ($validated['consent_required'] ?? false) ? Carbon::now()->addMonths(12) : null,
         ]);
 
-        // queue thumbnail/exif
-        dispatch(new \App\Jobs\Media\ProcessImageJob($file->id));
+        // queue image derivatives generation
+        dispatch(new \App\Jobs\CreateImageDerivativesJob($file));
 
         // audit
         event(new \App\Events\Audit\Generic('media.upload', 'MediaFile', $file->id, ['bytes' => $file->bytes]));

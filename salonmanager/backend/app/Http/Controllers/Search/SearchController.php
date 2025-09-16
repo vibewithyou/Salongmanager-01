@@ -49,6 +49,37 @@ class SearchController extends Controller
             });
         }
 
+        // Multiple services filter
+        if (!empty($v['services'])) {
+            $serviceIds = is_array($v['services']) ? $v['services'] : [$v['services']];
+            $q->whereExists(function($sq) use($serviceIds){
+                $sq->select(DB::raw(1))
+                    ->from('services')
+                    ->whereColumn('services.salon_id','salons.id')
+                    ->whereIn('services.id', $serviceIds);
+            });
+        }
+
+        // Price range filter
+        if (!empty($v['price_min']) || !empty($v['price_max'])) {
+            $q->whereExists(function($sq) use($v){
+                $sq->select(DB::raw(1))
+                    ->from('services')
+                    ->whereColumn('services.salon_id','salons.id');
+                if (!empty($v['price_min'])) {
+                    $sq->where('price', '>=', $v['price_min']);
+                }
+                if (!empty($v['price_max'])) {
+                    $sq->where('price', '<=', $v['price_max']);
+                }
+            });
+        }
+
+        // Rating filter
+        if (!empty($v['rating_min'])) {
+            $q->where('rating_avg', '>=', $v['rating_min']);
+        }
+
         // Open now: einfache Prüfung anhand Öffnungszeiten des Wochentags
         if (!empty($v['open_now'])) {
             $now = Carbon::now();
@@ -78,6 +109,7 @@ class SearchController extends Controller
         }
 
         if ($sort === 'name') $q->orderBy('name');
+        if ($sort === 'rating') $q->orderBy('rating_avg', 'desc');
 
         $result = $q->paginate($per);
 

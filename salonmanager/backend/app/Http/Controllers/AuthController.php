@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use PragmaRX\Google2FA\Google2FA;
 
 class AuthController extends Controller
 {
@@ -79,5 +81,69 @@ class AuthController extends Controller
             'user'   => $request->user(),
             'tenant' => app()->bound('tenant') ? app('tenant') : null,
         ]);
+    }
+
+    /** Enable 2FA - generate secret and QR code */
+    public function enable2FA(Request $request)
+    {
+        $user = $request->user();
+        
+        if ($user->two_factor_secret) {
+            return response()->json(['message' => '2FA already enabled'], 400);
+        }
+
+        $google2fa = new Google2FA();
+        $secretKey = $google2fa->generateSecretKey();
+        
+        $user->forceFill([
+            'two_factor_secret' => encrypt($secretKey),
+        ])->save();
+
+        $qrCodeUrl = $google2fa->getQRCodeUrl(
+            config('app.name'),
+            $user->email,
+            $secretKey
+        );
+
+        return response()->json([
+            'secret' => $secretKey,
+            'qr_code_url' => $qrCodeUrl,
+        ]);
+    }
+
+    /** Confirm 2FA - verify code and enable */
+    public function confirm2FA(Request $request)
+    {
+        $request->validate([
+            'code' => ['required', 'string', 'size:6'],
+        ]);
+
+        $user = $request->user();
+        $google2fa = new Google2FA();
+        
+        $secretKey = decrypt($user->two_factor_secret);
+        
+        if (!$google2fa->verifyKey($secretKey, $request->code)) {
+            return response()->json(['message' => 'Invalid verification code'], 422);
+        }
+
+        $user->forceFill([
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        return response()->json(['message' => '2FA enabled successfully']);
+    }
+
+    /** Disable 2FA */
+    public function disable2FA(Request $request)
+    {
+        $user = $request->user();
+        
+        $user->forceFill([
+            'two_factor_secret' => null,
+            'two_factor_confirmed_at' => null,
+        ])->save();
+
+        return response()->json(['message' => '2FA disabled successfully']);
     }
 }
