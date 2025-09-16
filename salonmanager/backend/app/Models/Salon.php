@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
 
 class Salon extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'name', 'slug', 'primary_color', 'secondary_color', 'logo_path', 'brand', 'seo', 'social', 'content_settings',
         'short_desc', 'tags', 'location', 'address_line1', 'address_line2', 'city', 'zip', 'country'

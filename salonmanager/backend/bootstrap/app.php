@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'role' => \App\Http\Middleware\RequireRole::class,
+            'audit' => \App\Http\Middleware\AuditSensitive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
