@@ -13,6 +13,7 @@
         "intervention/image": "^3.0",
         "sentry/sentry-laravel": "^4.0",
         "spatie/laravel-backup": "^9.0",
+        "spatie/laravel-responsecache": "^8.0",
         "stripe/stripe-php": "^13.0",
         "mollie/mollie-api-php": "^2.0"
     },

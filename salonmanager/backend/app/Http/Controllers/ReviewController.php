@@ -32,7 +32,7 @@ class ReviewController extends Controller
             $query->where('rating', $request->get('rating'));
         }
 
-        $reviews = $query->paginate($request->get('per_page', 20));
+        $reviews = $query->paginate($this->perPage($request, 20, 50));
 
         return response()->json([
             'items' => $reviews,
@@ -213,7 +213,7 @@ class ReviewController extends Controller
             $query->where('approved', $request->boolean('approved'));
         }
 
-        $reviews = $query->paginate($request->get('per_page', 20));
+        $reviews = $query->paginate($this->perPage($request, 20, 50));
 
         return response()->json(['items' => $reviews]);
     }

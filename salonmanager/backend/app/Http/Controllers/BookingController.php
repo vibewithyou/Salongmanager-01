@@ -117,7 +117,12 @@ class BookingController extends Controller
   public function index(Request $request): JsonResponse
   {
     $user = $request->user();
-    $query = Booking::with('services', 'media', 'stylist', 'customer');
+    $query = Booking::with([
+      'customer:id,name,email',
+      'stylist:id,name',
+      'services:id,name,duration,price',
+      'media:id,file_path,file_type'
+    ]);
 
     // Filter based on user role
     if ($user->hasRole('customer')) {
@@ -127,7 +132,8 @@ class BookingController extends Controller
     }
     // Salon owners and managers can see all bookings in their salon
 
-    $bookings = $query->orderBy('start_at', 'desc')->paginate(15);
+    $bookings = $query->orderByDesc('created_at')
+      ->paginate($this->perPage($request, 20, 50));
 
     return response()->json($bookings);
   }

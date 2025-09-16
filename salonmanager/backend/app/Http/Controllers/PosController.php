@@ -165,8 +165,8 @@ class PosController extends Controller
 
         $query = Invoice::where('salon_id', app('tenant')->id)
             ->whereIn('status', ['open', 'pending'])
-            ->with(['customer', 'items'])
-            ->orderBy('created_at', 'desc');
+            ->with(['customer:id,name,email', 'items:id,invoice_id,name,qty,unit_net,line_gross'])
+            ->orderByDesc('created_at');
 
         // Filter by customer if provided
         if ($request->has('customer_id')) {
@@ -181,7 +181,7 @@ class PosController extends Controller
             $query->whereDate('created_at', '<=', $request->input('to'));
         }
 
-        $invoices = $query->paginate($request->input('per_page', 15));
+        $invoices = $query->paginate($this->perPage($request, 15, 50));
 
         return response()->json([
             'invoices' => $invoices,

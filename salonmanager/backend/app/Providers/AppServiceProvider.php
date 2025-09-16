@@ -20,5 +20,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Models\ProductPrice::observe(\App\Observers\ProductPriceObserver::class);
+        
+        // Prevent N+1 queries in non-production environments
+        if (!app()->isProduction()) {
+            \Illuminate\Database\Eloquent\Model::preventLazyLoading();
+        }
     }
 }
