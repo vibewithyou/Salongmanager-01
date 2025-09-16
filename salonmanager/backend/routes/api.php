@@ -18,6 +18,11 @@ use App\Http\Controllers\Pos\PaymentController;
 use App\Http\Controllers\Pos\RefundController;
 use App\Http\Controllers\Pos\ReportController;
 use App\Http\Controllers\Search\SearchController;
+use App\Http\Controllers\Inventory\ProductController;
+use App\Http\Controllers\Inventory\StockController;
+use App\Http\Controllers\Inventory\SupplierController;
+use App\Http\Controllers\Inventory\StockLocationController;
+use App\Http\Controllers\Inventory\PurchaseOrderController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -145,6 +150,37 @@ Route::prefix('v1')->group(function () {
             ->middleware('role:salon_owner,salon_manager');
         Route::get('/exports/datev.csv', [ReportController::class, 'datevCsv'])
             ->middleware('role:salon_owner,salon_manager');
+    });
+
+    // Inventory routes
+    Route::prefix('inventory')->middleware(['auth:sanctum','tenant.required'])->group(function () {
+        // Products
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::post('/products', [ProductController::class, 'store']);
+        Route::put('/products/{product}', [ProductController::class, 'update']);
+
+        // Stock management
+        Route::get('/stock', [StockController::class, 'overview']);
+        Route::get('/stock/low', [StockController::class, 'lowStock']);
+        Route::post('/stock/in', [StockController::class, 'inbound']);
+        Route::post('/stock/out', [StockController::class, 'outbound']);
+        Route::post('/stock/transfer', [StockController::class, 'transfer']);
+        Route::get('/stock/movements', [StockController::class, 'movements']);
+
+        // Suppliers
+        Route::get('/suppliers', [SupplierController::class, 'index']);
+        Route::post('/suppliers', [SupplierController::class, 'store']);
+        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
+
+        // Stock locations
+        Route::get('/locations', [StockLocationController::class, 'index']);
+        Route::post('/locations', [StockLocationController::class, 'store']);
+        Route::put('/locations/{location}', [StockLocationController::class, 'update']);
+
+        // Purchase orders
+        Route::get('/po', [PurchaseOrderController::class, 'index']);
+        Route::post('/po', [PurchaseOrderController::class, 'store']);
+        Route::post('/po/{purchase_order}/receive', [PurchaseOrderController::class, 'receive']);
     });
 
     // Public search routes (no auth, no tenant binding)
