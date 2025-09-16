@@ -24,6 +24,7 @@ use App\Http\Controllers\Inventory\SupplierController;
 use App\Http\Controllers\Inventory\StockLocationController;
 use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\Media\UploadController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -196,6 +197,15 @@ Route::prefix('v1')->group(function () {
             ->middleware('role:salon_owner,salon_manager');
         Route::get('/export', [ReportController::class, 'exportCsv'])
             ->middleware('role:salon_owner,salon_manager');
+    });
+
+    // Media upload routes
+    Route::prefix('media')->middleware(['tenant.required'])->group(function () {
+        Route::post('/uploads/initiate', [UploadController::class, 'initiate'])->middleware('auth:sanctum');
+        Route::post('/uploads/finalize', [UploadController::class, 'finalize'])->middleware('auth:sanctum');
+
+        Route::get('/files/{file}', [UploadController::class, 'show']);
+        Route::delete('/files/{file}', [UploadController::class, 'destroy'])->middleware(['auth:sanctum', 'role:salon_owner,salon_manager']);
     });
 
     // Public search routes (no auth, no tenant binding)
