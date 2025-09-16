@@ -254,9 +254,12 @@ Route::prefix('v1')->group(function () {
 
     // GDPR routes
     Route::prefix('gdpr')->middleware(['auth:sanctum','tenant.required'])->group(function () {
-        Route::post('/export', [GdprController::class,'requestExport']);
-        Route::post('/delete', [GdprController::class,'requestDelete']);
-        Route::middleware('role:salon_owner,platform_admin')->post('/delete/{gdpr}/confirm', [GdprController::class,'confirmDelete']);
+        Route::post('/export', [GdprController::class,'requestExport']);                    // self
+        Route::get('/exports/{gdpr}', [GdprController::class,'show']);                      // self or admin
+        Route::get('/exports/{gdpr}/download', [GdprController::class,'download']);         // self or admin
+        Route::post('/delete', [GdprController::class,'requestDelete']);                    // self
+        Route::post('/delete/{gdpr}/confirm', [GdprController::class,'confirmDelete'])      // admin only
+            ->middleware('role:owner,platform_admin,salon_owner');
     });
 
     // RBAC routes

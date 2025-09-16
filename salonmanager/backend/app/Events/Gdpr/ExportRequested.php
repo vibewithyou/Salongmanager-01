@@ -2,7 +2,7 @@
 
 namespace App\Events\Gdpr;
 
-class Exported
+class ExportRequested
 {
     public function __construct(
         public int $userId,
