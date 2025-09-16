@@ -316,6 +316,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/payments/webhook', [PaymentWebhookController::class, 'handle'])
         ->middleware(['throttle.scope:30,1']);
 
+    // Refund routes
+    Route::post('/refunds', [RefundController::class, 'create'])
+        ->middleware(['auth:sanctum', 'tenant.required', 'throttle.scope:10,1']);
+
     // Consent routes
     Route::post('/consents', [ConsentController::class, 'store'])
         ->middleware(['auth:sanctum', 'tenant.required']);

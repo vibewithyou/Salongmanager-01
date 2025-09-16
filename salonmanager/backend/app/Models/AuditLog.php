@@ -3,55 +3,61 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Support\Tenancy\SalonOwned;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class AuditLog extends Model
 {
-    use SalonOwned;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'salon_id',
-        'user_id',
+        'actor_id',
+        'actor_type',
         'action',
         'entity_type',
         'entity_id',
         'meta',
-        'ip',
-        'ua',
         'method',
-        'path'
+        'path',
+        'ip',
+        'user_agent',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
+    public function actor(): MorphTo
     {
-        return [
-            'meta' => 'array',
-        ];
+        return $this->morphTo();
+    }
+
+    public function entity(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     /**
-     * Get the user that performed the action.
+     * Create an audit log entry
      */
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the salon related to the log.
-     */
-    public function salon()
-    {
-        return $this->belongsTo(Salon::class);
+    public static function log(
+        string $action,
+        $entity = null,
+        $actor = null,
+        array $meta = [],
+        ?string $method = null,
+        ?string $path = null,
+        ?string $ip = null,
+        ?string $userAgent = null
+    ): self {
+        return self::create([
+            'actor_id' => $actor?->id,
+            'actor_type' => $actor ? get_class($actor) : null,
+            'action' => $action,
+            'entity_type' => $entity ? get_class($entity) : null,
+            'entity_id' => $entity?->id,
+            'meta' => $meta,
+            'method' => $method,
+            'path' => $path,
+            'ip' => $ip,
+            'user_agent' => $userAgent,
+        ]);
     }
 }

@@ -21,7 +21,12 @@ class TenantResolveMiddleware
         }
 
         $tenantSlug = $request->header('X-Salon-Slug', $tenantSlug);
-        $tenantId   = $request->header('X-Salon-ID');
+        $tenantId   = $request->header('X-Salon-ID') ?? $request->query('tenant');
+
+        // Local development fallback
+        if (!$tenantId && app()->isLocal()) {
+            $tenantId = Salon::query()->value('id'); // erster Salon als Default
+        }
 
         $salon = null;
         if ($tenantId) {
@@ -35,6 +40,7 @@ class TenantResolveMiddleware
         }
 
         app()->instance('tenant', $salon);
+        app()->instance('tenant_id', $salon->id);
 
         return $next($request);
     }

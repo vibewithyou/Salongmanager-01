@@ -2,120 +2,169 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Invoice;
-use App\Support\Idempotency\Idempotency;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Support\Idempotency\Idempotency;
+use Stripe\Webhook;
+use Stripe\Exception\SignatureVerificationException;
+use Mollie\Api\MollieApiClient;
 
 class PaymentWebhookController extends Controller
 {
-    /**
-     * Handle payment webhooks from Stripe or Mollie with idempotency and signature verification
-     */
-    public function handle(Request $request)
+    public function handle(Request $request): JsonResponse
     {
-        $provider = config('payments.provider', 'stripe');
-
-        if ($provider === 'stripe') {
-            return $this->handleStripeWebhook($request);
-        } elseif ($provider === 'mollie') {
-            return $this->handleMollieWebhook($request);
-        }
-
-        return response()->json(['error' => 'Unknown provider'], 400);
-    }
-
-    private function handleStripeWebhook(Request $request)
-    {
-        $sig = $request->header('Stripe-Signature');
-        $secret = env('STRIPE_WEBHOOK_SECRET');
+        $provider = $request->route('provider');
+        $rawPayload = $request->getContent();
+        $signature = $request->header('Stripe-Signature') ?? $request->header('Mollie-Signature');
         
-        if (!$secret) {
-            Log::error('Stripe webhook secret not configured');
+        // Generate idempotency key from payload
+        $idempotencyKey = 'webhook_' . hash('sha256', $rawPayload . $signature);
+        
+        return Idempotency::once($idempotencyKey, 'webhook', function () use ($provider, $request, $rawPayload, $signature) {
+            return $this->processWebhook($provider, $request, $rawPayload, $signature);
+        }, 60 * 24); // 24 hours TTL for webhooks
+    }
+    
+    private function processWebhook(string $provider, Request $request, string $rawPayload, ?string $signature): JsonResponse
+    {
+        try {
+            switch ($provider) {
+                case 'stripe':
+                    return $this->handleStripeWebhook($rawPayload, $signature);
+                case 'mollie':
+                    return $this->handleMollieWebhook($rawPayload, $signature);
+                default:
+                    return response()->json(['error' => 'Unsupported provider'], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Webhook processing failed', [
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json(['error' => 'Webhook processing failed'], 500);
+        }
+    }
+    
+    private function handleStripeWebhook(string $rawPayload, ?string $signature): JsonResponse
+    {
+        $webhookSecret = config('services.stripe.webhook_secret');
+        
+        if (!$webhookSecret) {
+            Log::warning('Stripe webhook secret not configured');
             return response()->json(['error' => 'Webhook secret not configured'], 500);
         }
-
+        
         try {
-            $event = \Stripe\Webhook::constructEvent($request->getContent(), $sig, $secret);
-        } catch (\Throwable $e) {
-            Log::error('Stripe webhook signature verification failed', ['error' => $e->getMessage()]);
+            $event = Webhook::constructEvent($rawPayload, $signature, $webhookSecret);
+        } catch (SignatureVerificationException $e) {
+            Log::warning('Stripe webhook signature verification failed', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Invalid signature'], 400);
         }
-
-        $obj = $event->data['object'] ?? [];
-        $extId = $obj['id'] ?? ($obj['payment_intent'] ?? null);
-        if (!$extId) return response()->json(['error' => 'No id'], 400);
-
-        $idemKey = "stripe:{$event->id}";
-        $result = Idempotency::once($idemKey, 'stripe:webhook', function() use ($event, $obj) {
-            DB::table('webhook_events')->insert([
-                'provider' => 'stripe',
-                'event_type' => $event->type,
-                'external_id' => $event->id,
-                'payload' => json_encode($event, JSON_UNESCAPED_UNICODE),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            $invoiceId = $obj['metadata']['invoice_id'] ?? null;
-            if ($invoiceId && $event->type === 'checkout.session.completed') {
-                $inv = Invoice::lockForUpdate()->find($invoiceId);
-                if ($inv && $inv->status !== 'paid') {
-                    $inv->status = 'paid';
-                    $inv->payment_id = $obj['payment_intent'] ?? $obj['id'] ?? null;
-                    $inv->paid_at = now();
-                    $inv->save();
-                }
-            }
-            if ($invoiceId && $event->type === 'charge.refunded') {
-                $inv = Invoice::lockForUpdate()->find($invoiceId);
-                if ($inv && $inv->status !== 'refunded') {
-                    $inv->status = 'refunded';
-                    $inv->refunded_at = now();
-                    $inv->save();
-                }
-            }
-            return true;
-        });
-
-        return response()->json(['ok' => true, 'skipped' => !($result['ok'] ?? false)]);
+        
+        // Store webhook event
+        $this->storeWebhookEvent('stripe', $event->type, $event->id, $event->toArray());
+        
+        // Process event
+        $this->processStripeEvent($event);
+        
+        return response()->json(['status' => 'success']);
     }
-
-    private function handleMollieWebhook(Request $request)
+    
+    private function handleMollieWebhook(string $rawPayload, ?string $signature): JsonResponse
     {
-        $id = $request->input('id');
-        if (!$id) return response()->json(['error' => 'No id'], 400);
+        $mollie = new MollieApiClient();
+        $mollie->setApiKey(config('services.mollie.key'));
         
-        $idemKey = "mollie:$id";
+        $data = json_decode($rawPayload, true);
         
-        $result = Idempotency::once($idemKey, 'mollie:webhook', function() use ($id) {
-            // In a real implementation, you would fetch from Mollie API
-            // For now, we'll simulate the webhook event storage
-            DB::table('webhook_events')->insert([
-                'provider' => 'mollie',
-                'event_type' => 'payment.updated', // This would come from the actual Mollie API response
-                'external_id' => $id,
-                'payload' => json_encode(['id' => $id, 'status' => 'paid'], JSON_UNESCAPED_UNICODE),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            // Process payment status update
-            $invoiceId = $request->input('metadata.invoice_id');
-            if ($invoiceId) {
-                $inv = Invoice::lockForUpdate()->find($invoiceId);
-                if ($inv) {
-                    // In real implementation, check actual payment status from Mollie
-                    $inv->status = 'paid';
-                    $inv->paid_at = now();
-                    $inv->payment_id = $id;
-                    $inv->save();
-                }
-            }
-            return true;
-        });
-
-        return response()->json(['ok' => true, 'skipped' => !($result['ok'] ?? false)]);
+        if (!$data || !isset($data['id'])) {
+            return response()->json(['error' => 'Invalid payload'], 400);
+        }
+        
+        // Store webhook event
+        $this->storeWebhookEvent('mollie', 'payment.updated', $data['id'], $data);
+        
+        // Process event
+        $this->processMollieEvent($data);
+        
+        return response()->json(['status' => 'success']);
+    }
+    
+    private function storeWebhookEvent(string $provider, string $eventType, string $externalId, array $payload): void
+    {
+        DB::table('webhook_events')->insert([
+            'provider' => $provider,
+            'event_type' => $eventType,
+            'external_id' => $externalId,
+            'payload' => json_encode($payload),
+            'processed_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+    
+    private function processStripeEvent($event): void
+    {
+        switch ($event->type) {
+            case 'payment_intent.succeeded':
+                $this->handlePaymentSucceeded($event->data->object);
+                break;
+            case 'payment_intent.payment_failed':
+                $this->handlePaymentFailed($event->data->object);
+                break;
+            case 'charge.dispute.created':
+                $this->handleDisputeCreated($event->data->object);
+                break;
+            default:
+                Log::info('Unhandled Stripe event type', ['type' => $event->type]);
+        }
+    }
+    
+    private function processMollieEvent(array $data): void
+    {
+        $status = $data['status'] ?? 'unknown';
+        
+        switch ($status) {
+            case 'paid':
+                $this->handlePaymentSucceeded($data);
+                break;
+            case 'failed':
+            case 'canceled':
+            case 'expired':
+                $this->handlePaymentFailed($data);
+                break;
+            default:
+                Log::info('Unhandled Mollie event status', ['status' => $status]);
+        }
+    }
+    
+    private function handlePaymentSucceeded($paymentData): void
+    {
+        Log::info('Payment succeeded', ['payment_data' => $paymentData]);
+        
+        // TODO: Update invoice status, send confirmation email, etc.
+        // This would typically involve:
+        // 1. Finding the invoice by payment ID
+        // 2. Updating status to 'paid'
+        // 3. Sending confirmation email
+        // 4. Updating booking status if applicable
+    }
+    
+    private function handlePaymentFailed($paymentData): void
+    {
+        Log::info('Payment failed', ['payment_data' => $paymentData]);
+        
+        // TODO: Update invoice status, send failure notification, etc.
+    }
+    
+    private function handleDisputeCreated($disputeData): void
+    {
+        Log::warning('Payment dispute created', ['dispute_data' => $disputeData]);
+        
+        // TODO: Handle dispute, notify admin, etc.
     }
 }

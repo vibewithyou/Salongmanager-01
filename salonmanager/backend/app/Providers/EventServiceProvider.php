@@ -19,6 +19,11 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\AssignDefaultCustomerRole::class,
         ],
         
+        // Booking events
+        \App\Events\BookingConfirmed::class => [
+            \App\Listeners\SendBookingConfirmedNotification::class,
+        ],
+        
         // Notification listeners
         \App\Events\Booking\Confirmed::class => [
             \App\Listeners\Notify\BookingConfirmedListener::class,

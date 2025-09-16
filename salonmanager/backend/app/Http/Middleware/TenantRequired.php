@@ -21,6 +21,17 @@ class TenantRequired
             return $next($request);
         }
 
+        // Whitelist public/infra routes
+        $exempt = ['api/v1/health', 'up', 'login', 'register', 'password'];
+        if ($request->is($exempt)) {
+            return $next($request);
+        }
+
+        // Check if tenant is already resolved (from TenantResolveMiddleware)
+        if (app()->has('tenant_id')) {
+            return $next($request);
+        }
+
         // Check if user is authenticated
         if (!Auth::check()) {
             return response()->json([
