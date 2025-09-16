@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \App\Http\Middleware\TenantResolveMiddleware::class,
+            \App\Http\Middleware\TenantRequired::class,
             \App\Http\Middleware\SecureHeaders::class,
         ]);
         
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'throttle.scope' => \App\Http\Middleware\ScopeRateLimit::class,
             'role' => \App\Http\Middleware\RequireRole::class,
             'audit' => \App\Http\Middleware\AuditSensitive::class,
+            'tenant.required' => \App\Http\Middleware\TenantRequired::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

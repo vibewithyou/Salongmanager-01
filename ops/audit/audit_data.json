@@ -1,0 +1,52 @@
+﻿{
+    "pwa":  {
+                "icon_192":  true,
+                "icon_512":  true,
+                "manifest_exists":  true,
+                "icon_maskable":  true
+            },
+    "security":  {
+                     "tenant_middleware":  true,
+                     "throttle_middleware":  false,
+                     "csp_middleware":  true
+                 },
+    "critical_files":  {
+                           "readme":  true,
+                           "docker_compose":  true,
+                           "env_example":  false,
+                           "github_actions":  true
+                       },
+    "tests":  {
+                  "has_feature_tests":  true,
+                  "has_unit_tests":  false,
+                  "test_files":  21
+              },
+    "routes":  {
+                   "unprotected_routes":  0,
+                   "unguarded_routes":  [
+
+                                        ],
+                   "protected_routes":  0
+               },
+    "tenant":  {
+                   "tables_with_salon_id":  40,
+                   "missing_tables":  [
+                                          "users",
+                                          "personal_access_tokens",
+                                          "invoice_items",
+                                          "product_prices",
+                                          "invoices",
+                                          "bookings",
+                                          "salons",
+                                          "roles",
+                                          "permissions",
+                                          "salons",
+                                          "booking_services",
+                                          "booking_media",
+                                          "salons",
+                                          "gallery_photos",
+                                          "salons"
+                                      ],
+                   "tables_without_salon_id":  15
+               }
+}

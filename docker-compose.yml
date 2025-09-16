@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # Laravel Backend
+  app:
+    build:
+      context: ./salonmanager/backend
+      dockerfile: Dockerfile
+    container_name: salonmanager_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./salonmanager/backend:/var/www/html
+      - ./salonmanager/backend/storage:/var/www/html/storage
+    networks:
+      - salonmanager_network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=salonmanager
+      - DB_USERNAME=salonmanager
+      - DB_PASSWORD=salonmanager_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+
+  # Nginx Web Server
+  web:
+    image: nginx:alpine
+    container_name: salonmanager_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./salonmanager/backend/public:/var/www/html/public
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      - salonmanager_network
+    depends_on:
+      - app
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: salonmanager_db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=salonmanager
+      - MYSQL_USER=salonmanager
+      - MYSQL_PASSWORD=salonmanager_password
+    networks:
+      - salonmanager_network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: salonmanager_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - salonmanager_network
+
+  # Queue Worker
+  queue:
+    build:
+      context: ./salonmanager/backend
+      dockerfile: Dockerfile
+    container_name: salonmanager_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./salonmanager/backend:/var/www/html
+      - ./salonmanager/backend/storage:/var/www/html/storage
+    networks:
+      - salonmanager_network
+    depends_on:
+      - db
+      - redis
+    command: php artisan queue:work --verbose --tries=3 --timeout=90
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=salonmanager
+      - DB_USERNAME=salonmanager
+      - DB_PASSWORD=salonmanager_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+
+  # Scheduler
+  scheduler:
+    build:
+      context: ./salonmanager/backend
+      dockerfile: Dockerfile
+    container_name: salonmanager_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./salonmanager/backend:/var/www/html
+      - ./salonmanager/backend/storage:/var/www/html/storage
+    networks:
+      - salonmanager_network
+    depends_on:
+      - db
+      - redis
+    command: php artisan schedule:work
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=salonmanager
+      - DB_USERNAME=salonmanager
+      - DB_PASSWORD=salonmanager_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+
+  # Flutter Web Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: salonmanager_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    networks:
+      - salonmanager_network
+    depends_on:
+      - web
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  salonmanager_network:
+    driver: bridge
