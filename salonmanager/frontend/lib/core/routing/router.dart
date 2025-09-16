@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/state/auth_controller.dart';
 import '../../features/auth/ui/login_screen.dart';
-import '../../features/salon_profile/ui/home_screen.dart';
+import '../../features/salon_profile/ui/salon_page.dart';
 import 'go_router_refresh_stream.dart';
 
 class AppRouter {
@@ -26,7 +26,7 @@ class AppRouter {
       },
       routes: [
         GoRoute(path: '/login', builder: (ctx, st) => const LoginScreen()),
-        GoRoute(path: '/', builder: (ctx, st) => const HomeScreen()),
+        GoRoute(path: '/', builder: (ctx, st) => const SalonPage()),
       ],
     );
   }

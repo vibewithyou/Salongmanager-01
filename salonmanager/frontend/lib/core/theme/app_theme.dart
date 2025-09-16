@@ -57,5 +57,22 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData overrideWithSalon(ThemeData base, {String? primaryHex, String? secondaryHex}) {
+    Color? primary = _parseHex(primaryHex);
+    Color? secondary = _parseHex(secondaryHex);
+    final scheme = base.colorScheme.copyWith(
+      primary: primary ?? base.colorScheme.primary,
+      secondary: secondary ?? base.colorScheme.secondary,
+    );
+    return base.copyWith(colorScheme: scheme);
+  }
+
+  static Color? _parseHex(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    var v = hex.replaceAll('#', '');
+    if (v.length == 6) v = 'FF$v';
+    return Color(int.parse(v, radix: 16));
+  }
 }
 
