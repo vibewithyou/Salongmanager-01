@@ -17,6 +17,11 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
+        \App\Events\Booking\Confirmed::class => [\App\Listeners\Notify\BookingConfirmedListener::class],
+        \App\Events\Booking\Declined::class  => [\App\Listeners\Notify\BookingDeclinedListener::class],
+        \App\Events\Booking\Canceled::class  => [\App\Listeners\Notify\BookingCanceledListener::class],
+        \App\Events\Pos\InvoicePaid::class   => [\App\Listeners\Notify\InvoicePaidListener::class],
+        \App\Events\Media\ConsentRequested::class => [\App\Listeners\Notify\MediaConsentRequestedListener::class],
     ];
 
     /**

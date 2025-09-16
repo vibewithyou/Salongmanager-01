@@ -25,6 +25,7 @@ use App\Http\Controllers\Inventory\StockLocationController;
 use App\Http\Controllers\Inventory\PurchaseOrderController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Media\UploadController;
+use App\Http\Controllers\Notify\{PreferencesController, WebhooksController};
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', [HealthController::class, 'index']);
@@ -206,6 +207,17 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/files/{file}', [UploadController::class, 'show']);
         Route::delete('/files/{file}', [UploadController::class, 'destroy'])->middleware(['auth:sanctum', 'role:salon_owner,salon_manager']);
+    });
+
+    // Notification routes
+    Route::prefix('notify')->middleware(['auth:sanctum','tenant.required'])->group(function(){
+      Route::get('/prefs', [PreferencesController::class,'index']);
+      Route::post('/prefs', [PreferencesController::class,'update']);
+
+      Route::get('/webhooks', [WebhooksController::class,'index'])->middleware('role:salon_owner,salon_manager');
+      Route::post('/webhooks', [WebhooksController::class,'store'])->middleware('role:salon_owner,salon_manager');
+      Route::put('/webhooks/{webhook}', [WebhooksController::class,'update'])->middleware('role:salon_owner,salon_manager');
+      Route::delete('/webhooks/{webhook}', [WebhooksController::class,'destroy'])->middleware('role:salon_owner,salon_manager');
     });
 
     // Public search routes (no auth, no tenant binding)
