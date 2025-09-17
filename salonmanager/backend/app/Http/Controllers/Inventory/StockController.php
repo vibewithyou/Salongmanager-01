@@ -23,7 +23,7 @@ class StockController extends Controller
             ->where('salon_id', $salonId)
             ->with(['product:id,name,sku,reorder_point,reorder_qty', 'location:id,name'])
             ->orderByDesc('updated_at')
-            ->paginate($this->perPage($request, 50, 100));
+            ->paginate(50);
             
         return response()->json(['items' => $items]);
     }

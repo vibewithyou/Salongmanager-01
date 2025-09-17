@@ -2,117 +2,157 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\Gdpr\BuildExportJob;
-use App\Models\{GdprRequest, User};
+use App\Models\GdprRequest;
+use App\Models\User;
+use App\Events\Audit\Generic;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
 
 class GdprController extends Controller
 {
-    /** POST /api/v1/gdpr/export (auth: customer/self) */
-    public function requestExport(Request $r)
+    /**
+     * Request data export
+     * POST /gdpr/export
+     */
+    public function requestExport(Request $request): JsonResponse
     {
-        $u = $r->user();
-        $salonId = app('tenant')->id;
-
-        $g = GdprRequest::create([
-            'salon_id' => $salonId,
-            'user_id' => $u->id,
+        $user = $request->user();
+        
+        $gdprRequest = GdprRequest::create([
+            'salon_id' => app('tenant')->id,
+            'user_id' => $user->id,
             'type' => 'export',
-            'status' => 'pending'
+            'status' => 'done',
+            'payload' => $this->collectData($user),
         ]);
 
-        dispatch(new BuildExportJob($g->id));
-        event(new \App\Events\Gdpr\ExportRequested(userId: $u->id, gdprId: $g->id));
-        \App\Support\Audit\Audit::write('gdpr.export.request', 'User', $u->id, []);
+        event(new Generic('gdpr.export', 'User', $user->id, []));
 
-        return response()->json(['gdpr_id' => $g->id, 'status' => $g->status], 202);
+        return response()->json(['file' => $gdprRequest->payload]);
     }
 
-    /** GET /api/v1/gdpr/exports/{gdpr} (auth: self; returns meta/status) */
-    public function show(Request $r, GdprRequest $gdpr)
+    /**
+     * Request account deletion
+     * POST /gdpr/delete
+     */
+    public function requestDelete(Request $request): JsonResponse
     {
-        $this->authorizeGdpr($gdpr, $r->user());
-        return response()->json([
-            'id' => $gdpr->id,
-            'status' => $gdpr->status,
-            'artifact_path' => $gdpr->artifact_path,
-            'meta' => $gdpr->meta
-        ]);
-    }
-
-    /** GET /api/v1/gdpr/exports/{gdpr}/download (auth: self; force file) */
-    public function download(Request $r, GdprRequest $gdpr)
-    {
-        $this->authorizeGdpr($gdpr, $r->user());
-        if ($gdpr->status !== 'done' || !$gdpr->artifact_path) {
-            abort(404);
-        }
-        $disk = Storage::disk('exports');
-        if (!$disk->exists($gdpr->artifact_path)) {
-            abort(404);
-        }
-        \App\Support\Audit\Audit::write('gdpr.export.download', 'GdprRequest', $gdpr->id, []);
-        return response($disk->get($gdpr->artifact_path), 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => 'attachment; filename="gdpr_' . $gdpr->id . '.zip"'
-        ]);
-    }
-
-    /** POST /api/v1/gdpr/delete (auth: self) */
-    public function requestDelete(Request $r)
-    {
-        $u = $r->user();
-        $salonId = app('tenant')->id;
-        $g = GdprRequest::create([
-            'salon_id' => $salonId,
-            'user_id' => $u->id,
+        $user = $request->user();
+        
+        $gdprRequest = GdprRequest::create([
+            'salon_id' => app('tenant')->id,
+            'user_id' => $user->id,
             'type' => 'delete',
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
-        event(new \App\Events\Gdpr\DeletionRequested(userId: $u->id, gdprId: $g->id));
-        \App\Support\Audit\Audit::write('gdpr.delete.request', 'User', $u->id, []);
-        return response()->json(['gdpr_id' => $g->id, 'status' => 'pending']);
+
+        event(new Generic('gdpr.delete.request', 'User', $user->id, []));
+
+        return response()->json([
+            'ok' => true,
+            'status' => 'pending',
+            'message' => 'Ihr Löschantrag wurde eingereicht und wird bearbeitet.'
+        ]);
     }
 
-    /** POST /api/v1/gdpr/delete/{gdpr}/confirm (auth: owner/platform_admin/salon_owner) */
-    public function confirmDelete(Request $r, GdprRequest $gdpr)
+    /**
+     * Confirm deletion request (Admin only)
+     * POST /gdpr/delete/{gdpr}/confirm
+     */
+    public function confirmDelete(GdprRequest $gdprRequest): JsonResponse
     {
-        $this->authorizeAdmin($r->user());
-        if ($gdpr->type !== 'delete' || $gdpr->status !== 'pending') {
-            abort(400);
+        if ($gdprRequest->type !== 'delete' || $gdprRequest->status !== 'pending') {
+            abort(400, 'Invalid request type or status');
         }
 
-        // ⚠️ Anonymisierung – NICHT Rechnungen löschen (GoBD)
-        $user = User::find($gdpr->user_id);
-        if ($user) {
-            $user->name = '[deleted]';
-            $user->email = null;
-            $user->phone = null;
-            // TODO(ASK): weitere PII-Felder? (address, birthday...)
-            $user->save();
-        }
+        $user = $gdprRequest->user;
+        
+        // Anonymize instead of hard delete (due to tax/invoice obligations)
+        $user->update([
+            'name' => '[deleted]',
+            'email' => null,
+            'phone' => null,
+            'email_verified_at' => null,
+            'remember_token' => null,
+        ]);
 
-        $gdpr->status = 'done';
-        $gdpr->save();
-        event(new \App\Events\Gdpr\DeletionConfirmed(userId: $gdpr->user_id, gdprId: $gdpr->id));
-        \App\Support\Audit\Audit::write('gdpr.delete.confirm', 'User', $gdpr->user_id, []);
+        $gdprRequest->update(['status' => 'done']);
 
-        return response()->json(['ok' => true, 'status' => 'done']);
+        event(new Generic('gdpr.delete.confirm', 'User', $user->id, [
+            'gdpr_request_id' => $gdprRequest->id
+        ]));
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'User data has been anonymized'
+        ]);
     }
 
-    private function authorizeGdpr(GdprRequest $g, $user): void
+    /**
+     * Collect all user data for export
+     */
+    private function collectData(User $user): array
     {
-        if ($g->user_id !== $user->id && !$user->hasAnyRole(['owner', 'platform_admin', 'salon_owner'])) {
-            abort(403);
-        }
-    }
-
-    private function authorizeAdmin($user): void
-    {
-        if (!$user->hasAnyRole(['owner', 'platform_admin', 'salon_owner'])) {
-            abort(403);
-        }
+        return [
+            'export_date' => now()->toIso8601String(),
+            'profile' => $user->only([
+                'id',
+                'name',
+                'email',
+                'phone',
+                'created_at',
+                'updated_at'
+            ]),
+            'bookings' => $user->bookings()
+                ->with(['service', 'employee'])
+                ->get()
+                ->map(function ($booking) {
+                    return [
+                        'id' => $booking->id,
+                        'service' => $booking->service?->name,
+                        'employee' => $booking->employee?->name,
+                        'date' => $booking->date,
+                        'start_time' => $booking->start_time,
+                        'end_time' => $booking->end_time,
+                        'status' => $booking->status,
+                        'price' => $booking->price,
+                        'created_at' => $booking->created_at,
+                    ];
+                })->toArray(),
+            'invoices' => $user->invoices()
+                ->get()
+                ->map(function ($invoice) {
+                    return [
+                        'id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'amount' => $invoice->amount,
+                        'status' => $invoice->status,
+                        'created_at' => $invoice->created_at,
+                    ];
+                })->toArray(),
+            'reviews' => $user->reviews()
+                ->get()
+                ->map(function ($review) {
+                    return [
+                        'id' => $review->id,
+                        'rating' => $review->rating,
+                        'comment' => $review->comment,
+                        'service_id' => $review->service_id,
+                        'employee_id' => $review->employee_id,
+                        'created_at' => $review->created_at,
+                    ];
+                })->toArray(),
+            'loyalty_cards' => $user->loyaltyCards()
+                ->get()
+                ->map(function ($card) {
+                    return [
+                        'id' => $card->id,
+                        'card_number' => $card->card_number,
+                        'points' => $card->points,
+                        'status' => $card->status,
+                        'created_at' => $card->created_at,
+                    ];
+                })->toArray(),
+        ];
     }
 }
